@@ -1,0 +1,108 @@
+<html>
+  <head>
+    <title>Tabular Splitter</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
+  </head>
+<body>
+<h4>使い方</h4>
+<p>テキスト領域に入力した文字は以下のルールで上/中/下段に分割されます。
+<ul>
+<li>空白で区切られた文字群をひとかたまりとして扱います。</li>
+<li>かたまりの冒頭は上段に、最初の半角「/」以降は中段に、次の半角「/」以降は下段にそれぞれ中央揃えで配置されます。</li>
+<li>かたまりの中に空白を入れたい場合は、その場所に半角「=」を入力しておくと、出力時に半角空白に変換されます。</li>
+</ul>
+</p>
+<p>
+入力後は結果の領域をドラッグしてコピーし、Word等の「形式を選択して貼り付け」（Paste Special）機能を使用すると、表形式で貼り付けされます。
+</p>
+<p>
+※ なお、URLパラメーターから、や、各段を区切る文字（ts）、空白代替文字（vs）、各段の文字サイズ（上からfs1、fs2、fs3のポイント単位）を変更できます。
+</p>
+<br/>
+<textarea id="input" cols="120" rows="5" oninput="process();"></textarea>
+<br/><br/><br/>
+<div id="output"></div>
+
+<script>
+const input = document.getElementById("input");
+const output = document.getElementById("output");
+
+let ParmList = null;
+let wordSeparator = getParm("ws", "[ 0x3000　]");
+let termSeparator = getParm("ts", "/");
+let vSpace = getParm("vs", "=");
+let fs1 = getParm("fs1", "10");
+let fs2 = getParm("fs2", "20");
+let fs3 = getParm("fs3", "10");
+
+function getAt(ar, idx) {
+  if (!ar instanceof Array || ar.length <= idx) return "";
+  return ar[idx];
+}
+
+function process() {
+//  console.log(input.value);
+  // Remove all child-nodes
+  while(output.firstChild ){
+    output.removeChild(output.firstChild );
+  }
+  lineChunk = input.value.split("\n");
+  for (const c of lineChunk) {    // line process
+    let tbl = document.createElement("table");
+    let chunkArray = [];
+    let tda = c.split(RegExp(wordSeparator));      // term break
+    for (const cc of tda) {
+      chunkArray.push(cc.split(termSeparator));
+    }
+    // now output data
+    let tr1 = document.createElement("tr");
+    for (const a of chunkArray) { // 1st
+      let td = document.createElement("td");
+      td.style = "font-size:" + fs1 + "pt;text-align: center;";
+      td.innerHTML = getAt(a, 0).replaceAll(vSpace, " ");
+      tr1.appendChild(td);
+    }
+    tbl.appendChild(tr1);
+    let tr2 = document.createElement("tr");
+    for (const a of chunkArray) { // 2nd
+      let td = document.createElement("td");
+      td.style = "font-size:" + fs2 + "pt;text-align: center;text-decoration:underline;";
+      td.textContent = getAt(a, 1).replaceAll(vSpace, " ");
+      tr2.appendChild(td);
+    }
+    tbl.appendChild(tr2);
+    let tr3 = document.createElement("tr");
+    for (const a of chunkArray) { // 3rd
+      let td = document.createElement("td");
+      td.style = "font-size:" + fs3 + "pt;text-align: center;";
+      td.textContent = getAt(a, 2).replaceAll(vSpace, " ");
+      tr3.appendChild(td);
+    }
+    tbl.appendChild(tr3);
+    output.appendChild(tbl);
+  }
+}
+
+function getParm(key, dvalue) {
+  if (ParmList == null) {
+    ParmList = [];
+    var arg = location.search.substring(1);
+    if (arg != "") {
+      let args = arg.split("&");
+      for(let i = 0; i < args.length; i++) {
+        parmPair = args[i].split("=");
+        ParmList[parmPair[0]] = parmPair[1];
+      }
+    }
+  }
+  if (key in ParmList) {
+    return ParmList[key];
+  } else {
+    return dvalue;
+  }
+}
+
+
+</script>
+</body>
+</html>
