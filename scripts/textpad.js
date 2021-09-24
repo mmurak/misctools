@@ -80,8 +80,8 @@ base.addLayer(toneCanvas, "", 70);
 // end of usecase - I
 
 container.appendChild(base.getBase());          // put them altogether
-gate.getGate().focus();
-
+GlobalGate.getGate().focus();
+processInput();
 
 
 
