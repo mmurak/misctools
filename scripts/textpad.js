@@ -83,7 +83,11 @@ container.appendChild(base.getBase());          // put them altogether
 gate.getGate().focus();
 
 
-
+let ParmList = null;
+let ae = getParm("esc");
+if (ae != "") {
+  gate.getGate().additionalEsc = ae;
+}
 
 function dragStart(evt) {
   imageArray.push(toneCtx.getImageData(0, 0, toneCanvas.width, toneCanvas.height));
@@ -168,4 +172,23 @@ function eraseLastStroke() {
   let image = imageArray.pop();
   toneCtx.putImageData(image, 0, 0);
   if (imageArray.length == 0) stepback.disabled = true;
+}
+
+function getParm(key) {
+  if (ParmList == null) {
+    ParmList = [];
+    var arg = location.search.substring(1);
+    if (arg != "") {
+      let args = arg.split("&");
+      for(let i = 0; i < args.length; i++) {
+        parmPair = args[i].split("=");
+        ParmList[parmPair[0]] = parmPair[1];
+      }
+    }
+  }
+  if (key in ParmList) {
+    return ParmList[key];
+  } else {
+    return "";
+  }
 }
