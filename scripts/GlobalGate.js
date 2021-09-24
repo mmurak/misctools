@@ -29,11 +29,10 @@ class GateIndicator {
     this.escapedCursor = [0, 0];
     this.tsmMgr = new TSMmanager();
     GlobalGate = this;    // Could be eliminated when the language support class variables
-    this.additionalEsc = "";
     this.gate.addEventListener("input", inputProc);
     this.gate.addEventListener("keyup", function(evt) {
       let g = GlobalGate.getGate();
-      if ((evt.key == "Escape") || (evt.key == this.additionalEsc)){
+      if (evt.key == "Escape") {
         if (this.escaped) {
           // Abort Escape-Mode
           console.log("Escaped:" + g.value);
