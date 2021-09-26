@@ -28,10 +28,10 @@ class TSMmanager {
     }
   }
 
-  drawObject(intCh, ctx, hoffset, voffset) {
+  drawObject(intCh, ctx, hoffset, voffset, magFactor) {
     if (this.objDict.has(intCh)) {
       let obj = this.objDict.get(intCh);
-      obj.draw(ctx, hoffset, voffset);
+      obj.draw(ctx, hoffset, voffset, magFactor);
     } else {
       return null;
     }

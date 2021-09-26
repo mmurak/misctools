@@ -2,13 +2,14 @@
  * class CompositeCanvas(width, height, fontInfo, vmargin, hmargin, vextra)
  */
 class CompositeCanvas {
-  constructor(width, height, fontInfo, vmargin, hmargin, vextra) {
+  constructor(width, height, fontInfo, vmargin, hmargin, vextra, magFactor) {
     this.width = width;
     this.height = height;
     this.fontInfo = fontInfo;
     this.vmargin = vmargin;
     this.hmargin = hmargin;
     this.vextra = vextra;
+    this.magFactor = magFactor;
     this.textCanvas = document.createElement("canvas");
     this.textCtx = null;
     this.cursorCanvas = document.createElement("canvas");
@@ -67,8 +68,6 @@ class CompositeCanvas {
     let startrc = this._cursorInfo(text, csr1);
     let endrc = this._cursorInfo(text, csr2);
     if (startrc[0] == endrc[0]) {
-//console.log("from:" + csr1 + "  " + startrc[0] + "  front:'" + startrc[1] + "'  rest:'" + startrc[2] + "'");
-//console.log("to:" + csr2 + "  " + endrc[0] + "  front:'" + endrc[1] + "'  rest:'" + endrc[2] + "'");
       this.cursorCtx.beginPath();
       let startX = this.textCtx.measureText(startrc[1]).width;
       let endX = this.textCtx.measureText(endrc[1]).width;
@@ -104,29 +103,31 @@ class CompositeCanvas {
     this.cursorCanvas.width = pHsize;
     this.cursorCanvas.height = pVsize;
     this.cursorCtx = this.cursorCanvas.getContext("2d");
-    this.cursorCtx.strokeStyle = "rgb(0, 120, 0)";
-    this.cursorCtx.fillStyle = "rgb(200, 230, 255)";
+    this.cursorCtx.strokeStyle = "rgb(0, 120, 0, 1.0)";
+    this.cursorCtx.fillStyle = "rgb(180, 190, 240, 0.4)";
     this.cursorCtx.lineWidth = 2;
     this.cursorCtx.lineCap = "round";
   }
   // check canvas size and stretch if necessary
   _canvasStretcher(rowNo, text) {
+    let eachText = text.split(/\n/);
     let preferredV = Math.trunc((rowNo + 1) * (this.vextra + this.charHeight) + this.vmargin + this.charHeight);
     preferredV = Math.max(preferredV, this.textCanvas.height);
-    let preferredH = Math.trunc(this.textCtx.measureText(text).width + (this.hmargin * 2));
+    let preferredH = Math.trunc(this.textCtx.measureText(eachText[rowNo]).width + (this.hmargin * 2));
     preferredH = Math.max(preferredH, this.textCanvas.width);
     if ((this.textCanvas.height <  preferredV) || (this.textCanvas.width < preferredH)) {
-console.log("H:" + preferredH + "   V:" + preferredV);
       this._configCanvas(preferredH, preferredV);
     }
   }
   // display text
   display(text, csr1, csr2, tsmMgr) {
     // Text section
-    this.textCtx.clearRect(0, 0, this.width, this.height);
+    this.textCtx.fillStyle = "rgb(255,255,255)";
+    this.textCtx.fillRect(0, 0, this.width, this.height);
+    this.textCtx.fillStyle = "rgb(0,0,0)";
     text.split(/\n/).forEach((aLine, index) => {
       let hstart = this.hmargin;
-      this._canvasStretcher(index, text.replaceAll(tsmMgr.regexpG));
+      this._canvasStretcher(index, text.replaceAll(tsmMgr.regexpG, "\u{2004}"));
       while(aLine.length > 0) {
         let pt = aLine.search(tsmMgr.regexp);
         if (pt < 0) {
@@ -139,7 +140,7 @@ console.log("H:" + preferredH + "   V:" + preferredV);
           hstart += this.textCtx.measureText(preTSM).width;
           // display TSM part
           let tsmChar = aLine.substr(pt, 1);
-          tsmMgr.drawObject(tsmChar, this.textCtx, hstart, index * (this.vextra + this.charHeight) + this.vmargin + this.charHeight);
+          tsmMgr.drawObject(tsmChar, this.textCtx, hstart, index * (this.vextra + this.charHeight) + this.vmargin + this.charHeight, this.magFactor);
           hstart += this.textCtx.measureText("\u{2004}").width;
           // preparation for the next step
           aLine = aLine.substr(pt + 1);

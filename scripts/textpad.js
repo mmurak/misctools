@@ -19,9 +19,25 @@ button.addEventListener("click", function() {
     cCanvas.vextra = Math.trunc(val);
   }
 });
+let outButton = document.createElement("input");
+outButton.type = "button";
+outButton.value = "TSMイメージ出力";
+outButton.addEventListener("click", function() {
+  let anchortag = document.createElement("a");
+  anchortag.href = cCanvas.textCanvas.toDataURL("image/png");
+  anchortag.download = "tsmImage.png";
+  anchortag.click();
+});
 
 // preparation for usecase - I
 let br2 = document.createElement("br");
+let help = document.createElement("input");
+help.type = "button";
+help.value = "簡単な説明"
+help.addEventListener("click", function() {
+  alert("・TSMの入力はESCキーに続いて以下の2文字を入力\n  Low-Fall: lf    High-Fall: hf\n  Low-Rise: lr    High-Rise: hr\n  Fall-Rise: fr    Rise-Fall: rf\n  Mid-Level: ml\n  高ストレス（初）: h1    低ストレス（初）: l1\n  高ストレス: h2    低ストレス: l2\n  下降調: h3    上昇調: l3\n  高前頭部: hp\n  IP: ip    文末: fs\n\n・なお、URLに以下のパラメーターを指定可能\n  フォントサイズ（デフォルトは27）: fontsize\n  TSM倍率（デフォルトは1.0）: magfactor\n　　なお、お気に入りは TSMEdit.html?fontsize=15&magfactor=0.6\n\n・また、マウスドラッグでフリーハンド描画が可能（シフトキーを押しながらドラッグで赤、optionキーを押しながらドラッグで緑）\n\n・ファイル保存機能はないものの、内部コード（Unicodeのsubscript領域を流用）で他エディターとコピー&ペーストでのやり取りが可能");
+});
+let br3 = document.createElement("br");
 const stepback = document.createElement("input");
 stepback.type = "button";
 stepback.value = "最終ストロークを削除";
@@ -35,18 +51,23 @@ stepback.addEventListener("click", function() {
 });
 // end preparation for usecase - I
 
-let nd = wrapWithDiv([gate.getGate(), br1, button, br2, stepback], "float:right;");
+let ParmList = null;
+
+let fontSize = getParm("fontsize", "27");
+let magFactor = getParm("magfactor", "1.0");
+
+let nd = wrapWithDiv([gate.getGate(), br1, button, outButton, br2, help, br3, stepback], "float:right;");
 base.addLayer(nd, "right:10px !important;", 80)
 
-let cCanvas = new CompositeCanvas(800, 500, "27pt Times New Roman", 20, 20, 30);
+let cCanvas = new CompositeCanvas(800, 500, fontSize + "pt Times New Roman", 20, 20, 30, magFactor);
 window.addEventListener("blur", function (evt) {
   cCanvas._hideBlinkingCursor();
 });
 window.addEventListener("focus", function (evt) {
   processInput();
 });
-base.addLayer(cCanvas.textCanvas, "", 60);        // Add text canvas
-base.addLayer(cCanvas.cursorCanvas, "", 40);    // Add cursor canvas
+base.addLayer(cCanvas.textCanvas, "", 40);        // Add text canvas
+base.addLayer(cCanvas.cursorCanvas, "", 60);    // Add cursor canvas
 
 // usecase - I
 let imageArray = [];
@@ -66,7 +87,6 @@ const centreNibSize = 1;
 let toneCanvas = document.createElement("canvas");
 toneCanvas.width = window.innerWidth;
 toneCanvas.height = window.innerHeight;
-console.log("w:" + window.innerWidth + "  h:" + window.innerHeight);
 toneCanvas.addEventListener("mousedown", (evt) => { dragStart(evt); });
 toneCanvas.addEventListener("mouseup", (evt) => { dragEnd(evt); });
 toneCanvas.addEventListener("mouseout", (evt) => { dragEnd(evt); });
@@ -168,4 +188,23 @@ function eraseLastStroke() {
   let image = imageArray.pop();
   toneCtx.putImageData(image, 0, 0);
   if (imageArray.length == 0) stepback.disabled = true;
+}
+
+function getParm(key, defaultValue) {
+  if (ParmList == null) {
+    ParmList = [];
+    var arg = location.search.substring(1);
+    if (arg != "") {
+      let args = arg.split("&");
+      for(let i = 0; i < args.length; i++) {
+        parmPair = args[i].split("=");
+        ParmList[parmPair[0]] = parmPair[1];
+      }
+    }
+  }
+  if (key in ParmList) {
+    return ParmList[key];
+  } else {
+    return defaultValue;
+  }
 }

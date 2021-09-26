@@ -3,74 +3,74 @@
 class ToneMark {
   constructor() {
   }
-  drawCircle(context, hoffset, voffset) {
+  drawCircle(context, hoffset, voffset, magFactor) {
     context.beginPath();
-    context.arc(hoffset+this.deltaX, voffset+this.deltaY, 3, 0, Math.PI*2);
+    context.arc(hoffset+this.deltaX * magFactor, voffset+this.deltaY * magFactor, 3 * magFactor, 0, Math.PI*2);
     context.stroke();
   }
-  drawVerticalLine(context, hoffset, voffset) {
+  drawVerticalLine(context, hoffset, voffset, magFactor) {
     context.beginPath();
-    context.moveTo(hoffset+this.deltaX, voffset+this.deltaY);
-    context.lineTo(hoffset+this.deltaX, voffset+this.deltaY+8.0);
+    context.moveTo(hoffset+this.deltaX * magFactor, voffset+this.deltaY * magFactor);
+    context.lineTo(hoffset+this.deltaX * magFactor, voffset+(this.deltaY+8.0) * magFactor);
     context.stroke();
   }
-  drawLargeVerticalLine(context, hoffset, voffset) {
+  drawLargeVerticalLine(context, hoffset, voffset, magFactor) {
     context.beginPath();
-    context.moveTo(hoffset+this.deltaX, voffset+this.deltaY);
-    context.lineTo(hoffset+this.deltaX, voffset+this.deltaY+30.0);
+    context.moveTo(hoffset+this.deltaX * magFactor, voffset+this.deltaY * magFactor);
+    context.lineTo(hoffset+this.deltaX * magFactor, voffset+(this.deltaY+30.0) * magFactor);
     context.stroke();
   }
-  drawHorizontalLine(context, hoffset, voffset) {
+  drawHorizontalLine(context, hoffset, voffset, magFactor) {
     context.beginPath();
-    context.moveTo(hoffset+this.deltaX, voffset+this.deltaY);
-    context.lineTo(hoffset+this.deltaX+10.0, voffset+this.deltaY);
+    context.moveTo(hoffset+this.deltaX * magFactor, voffset+this.deltaY * magFactor);
+    context.lineTo(hoffset+(this.deltaX+10.0) * magFactor, voffset+this.deltaY * magFactor);
     context.stroke();
   }
-  drawAscendingBar(context, hoffset, voffset) {
+  drawAscendingBar(context, hoffset, voffset, magFactor) {
     context.beginPath();
-    context.moveTo(hoffset+this.deltaX, voffset+this.deltaY+8);
-    context.lineTo(hoffset+this.deltaX+8, voffset+this.deltaY);
+    context.moveTo(hoffset+this.deltaX * magFactor, voffset+(this.deltaY+8) * magFactor);
+    context.lineTo(hoffset+(this.deltaX+8) * magFactor, voffset+this.deltaY * magFactor);
     context.stroke();
   }
-  drawAscendingArrowHead(context, hoffset, voffset) {
+  drawAscendingArrowHead(context, hoffset, voffset, magFactor) {
     context.beginPath();
-    context.moveTo(hoffset+this.deltaX+4, voffset+this.deltaY);
-    context.lineTo(hoffset+this.deltaX+8, voffset+this.deltaY);
-    context.lineTo(hoffset+this.deltaX+8, voffset+this.deltaY+4);
+    context.moveTo(hoffset+(this.deltaX+4) * magFactor, voffset+this.deltaY * magFactor);
+    context.lineTo(hoffset+(this.deltaX+8) * magFactor, voffset+this.deltaY * magFactor);
+    context.lineTo(hoffset+(this.deltaX+8) * magFactor, voffset+(this.deltaY+4) * magFactor);
     context.stroke();
   }
-  drawDescendingBar(context, hoffset, voffset) {
+  drawDescendingBar(context, hoffset, voffset, magFactor) {
     context.beginPath();
-    context.moveTo(hoffset+this.deltaX, voffset+this.deltaY);
-    context.lineTo(hoffset+this.deltaX+8, voffset+this.deltaY+8);
+    context.moveTo(hoffset+this.deltaX * magFactor, voffset+this.deltaY * magFactor);
+    context.lineTo(hoffset+(this.deltaX+8) * magFactor, voffset+(this.deltaY+8) * magFactor);
     context.stroke();
   }
-  drawDescendingArrowHead(context, hoffset, voffset) {
+  drawDescendingArrowHead(context, hoffset, voffset, magFactor) {
     context.beginPath();
-    context.moveTo(hoffset+this.deltaX+4, voffset+this.deltaY+8);
-    context.lineTo(hoffset+this.deltaX+8, voffset+this.deltaY+8);
-    context.lineTo(hoffset+this.deltaX+8, voffset+this.deltaY+4);
+    context.moveTo(hoffset+(this.deltaX+4) * magFactor, voffset+(this.deltaY+8) * magFactor);
+    context.lineTo(hoffset+(this.deltaX+8) * magFactor, voffset+(this.deltaY+8) * magFactor);
+    context.lineTo(hoffset+(this.deltaX+8) * magFactor, voffset+(this.deltaY+4) * magFactor);
     context.stroke();
   }
-  drawMountain(context, hoffset, voffset) {
+  drawMountain(context, hoffset, voffset, magFactor) {
     context.beginPath();
-    context.moveTo(hoffset+this.deltaX - 8.0, voffset+this.deltaY + 4.0);
-    context.lineTo(hoffset+this.deltaX - 4.0, voffset+this.deltaY);
-    context.lineTo(hoffset+this.deltaX, voffset+this.deltaY+4.0);
+    context.moveTo(hoffset+(this.deltaX - 8.0) * magFactor, voffset+(this.deltaY + 4.0) * magFactor);
+    context.lineTo(hoffset+(this.deltaX - 4.0) * magFactor, voffset+this.deltaY * magFactor);
+    context.lineTo(hoffset+this.deltaX * magFactor, voffset+(this.deltaY+4.0) * magFactor);
     context.stroke();
   }
-  drawValley(context, hoffset, voffset) {
+  drawValley(context, hoffset, voffset, magFactor) {
     context.beginPath();
-    context.moveTo(hoffset+this.deltaX - 8.0, voffset+this.deltaY);
-    context.lineTo(hoffset+this.deltaX - 4.0, voffset+this.deltaY+4.0);
-    context.lineTo(hoffset+this.deltaX, voffset+this.deltaY);
+    context.moveTo(hoffset+(this.deltaX - 8.0) * magFactor, voffset+this.deltaY * magFactor);
+    context.lineTo(hoffset+(this.deltaX - 4.0) * magFactor, voffset+(this.deltaY+4.0) * magFactor);
+    context.lineTo(hoffset+this.deltaX * magFactor, voffset+this.deltaY * magFactor);
     context.stroke();
   }
-  drawBendedLine(context, hoffset, voffset) {
+  drawBendedLine(context, hoffset, voffset, magFactor) {
     context.beginPath();
-    context.moveTo(hoffset+this.deltaX - 4.0, voffset+this.deltaY);
-    context.lineTo(hoffset+this.deltaX, voffset+this.deltaY+4.0);
-    context.lineTo(hoffset+this.deltaX-4.0, voffset+this.deltaY+8.0);
+    context.moveTo(hoffset+(this.deltaX - 4.0) * magFactor, voffset+this.deltaY * magFactor);
+    context.lineTo(hoffset+this.deltaX * magFactor, voffset+(this.deltaY+4.0) * magFactor);
+    context.lineTo(hoffset+(this.deltaX-4.0) * magFactor, voffset+(this.deltaY+8.0) * magFactor);
     context.stroke();
   }
   size() {    // default value, override the value if necessary
@@ -87,8 +87,8 @@ class LowRise extends ToneMark {
     this.deltaX = 2.0;
     this.deltaY = -4.0;
   }
-  draw(context, hoffset, voffset) {
-    super.drawAscendingBar(context, hoffset, voffset);
+  draw(context, hoffset, voffset, magFactor) {
+    super.drawAscendingBar(context, hoffset, voffset, magFactor);
   }
 }
 
@@ -98,8 +98,8 @@ class HighRise extends ToneMark {
     this.deltaX = 2.0;
     this.deltaY = -22.0;
   }
-  draw(context, hoffset, voffset) {
-    super.drawAscendingBar(context, hoffset, voffset);
+  draw(context, hoffset, voffset, magFactor) {
+    super.drawAscendingBar(context, hoffset, voffset, magFactor);
   }
 }
 
@@ -109,8 +109,8 @@ class LowFall extends ToneMark {
     this.deltaX = 2.0;
     this.deltaY = -4.0;
   }
-  draw(context, hoffset, voffset) {
-    super.drawDescendingBar(context, hoffset, voffset);
+  draw(context, hoffset, voffset, magFactor) {
+    super.drawDescendingBar(context, hoffset, voffset, magFactor);
   }
 }
 
@@ -120,8 +120,8 @@ class HighFall extends ToneMark {
     this.deltaX = 2.0;
     this.deltaY = -22.0;
   }
-  draw(context, hoffset, voffset) {
-    super.drawDescendingBar(context, hoffset, voffset);
+  draw(context, hoffset, voffset, magFactor) {
+    super.drawDescendingBar(context, hoffset, voffset, magFactor);
   }
 }
 
@@ -131,8 +131,8 @@ class RiseFall extends ToneMark {
     this.deltaX =  10.0;
     this.deltaY =  -20.0;
   }
-  draw(context, hoffset, voffset) {
-    super.drawMountain(context, hoffset, voffset);
+  draw(context, hoffset, voffset, magFactor) {
+    super.drawMountain(context, hoffset, voffset, magFactor);
   }
 }
 
@@ -142,8 +142,8 @@ class FallRise extends ToneMark {
     this.deltaX = 10.0;
     this.deltaY = -20.0;
   }
-  draw(context, hoffset, voffset) {
-    super.drawValley(context, hoffset, voffset);
+  draw(context, hoffset, voffset, magFactor) {
+    super.drawValley(context, hoffset, voffset, magFactor);
   }
 }
 
@@ -153,8 +153,8 @@ class MidLevel extends ToneMark {
     this.deltaX = 8.0;
     this.deltaY = -20.0;
   }
-  draw(context, hoffset, voffset) {
-    super.drawBendedLine(context, hoffset, voffset);
+  draw(context, hoffset, voffset, magFactor) {
+    super.drawBendedLine(context, hoffset, voffset, magFactor);
   }
 }
 
@@ -164,8 +164,8 @@ class HighStressed1 extends ToneMark {
     this.deltaX = 7.0;
     this.deltaY = -25.0;
   }
-  draw(context, hoffset, voffset) {
-    super.drawVerticalLine(context, hoffset, voffset);
+  draw(context, hoffset, voffset, magFactor) {
+    super.drawVerticalLine(context, hoffset, voffset, magFactor);
   }
 }
 
@@ -175,8 +175,8 @@ class HighStressed2 extends ToneMark {
     this.deltaX = 5.0;
     this.deltaY = -22.0;
   }
-  draw(context, hoffset, voffset) {
-    super.drawCircle(context, hoffset, voffset);
+  draw(context, hoffset, voffset, magFactor) {
+    super.drawCircle(context, hoffset, voffset, magFactor);
   }
 }
 
@@ -186,9 +186,9 @@ class HighStressed3 extends ToneMark {
     this.deltaX = 0.0;
     this.deltaY = -25.0;
   }
-  draw(context, hoffset, voffset) {
-    super.drawDescendingBar(context, hoffset, voffset);
-    super.drawDescendingArrowHead(context, hoffset, voffset);
+  draw(context, hoffset, voffset, magFactor) {
+    super.drawDescendingBar(context, hoffset, voffset, magFactor);
+    super.drawDescendingArrowHead(context, hoffset, voffset, magFactor);
   }
 }
 
@@ -198,8 +198,8 @@ class LowStressed1 extends ToneMark {
     this.deltaX = 7.0;
     this.deltaY = -5.0;
   }
-  draw(context, hoffset, voffset) {
-    super.drawVerticalLine(context, hoffset, voffset);
+  draw(context, hoffset, voffset, magFactor) {
+    super.drawVerticalLine(context, hoffset, voffset, magFactor);
   }
 }
 
@@ -209,8 +209,8 @@ class LowStressed2 extends ToneMark {
     this.deltaX = 5.0;
     this.deltaY = -2.0;
   }
-  draw(context, hoffset, voffset) {
-    super.drawCircle(context, hoffset, voffset);
+  draw(context, hoffset, voffset, magFactor) {
+    super.drawCircle(context, hoffset, voffset, magFactor);
   }
 }
 
@@ -220,9 +220,9 @@ class LowStressed3 extends ToneMark {
     this.deltaX = 0.0;
     this.deltaY = -5.0;
   }
-  draw(context, hoffset, voffset) {
-    super.drawAscendingBar(context, hoffset, voffset);
-    super.drawAscendingArrowHead(context, hoffset, voffset);
+  draw(context, hoffset, voffset, magFactor) {
+    super.drawAscendingBar(context, hoffset, voffset, magFactor);
+    super.drawAscendingArrowHead(context, hoffset, voffset, magFactor);
   }
 }
 
@@ -232,8 +232,8 @@ class HighPrehead extends ToneMark {
     this.deltaX = -3.0;
     this.deltaY = -22.0;
   }
-  draw(context, hoffset, voffset) {
-    super.drawHorizontalLine(context, hoffset, voffset);
+  draw(context, hoffset, voffset, magFactor) {
+    super.drawHorizontalLine(context, hoffset, voffset, magFactor);
   }
 }
 
@@ -243,8 +243,8 @@ class LowPrehead extends ToneMark {
     this.deltaX = -3.0;
     this.deltaY = 0.0;
   }
-  draw(context, hoffset, voffset) {
-    super.drawHorizontalLine(context, hoffset, voffset);
+  draw(context, hoffset, voffset, magFactor) {
+    super.drawHorizontalLine(context, hoffset, voffset, magFactor);
   }
 }
 
@@ -254,8 +254,8 @@ class IP extends ToneMark {
     this.deltaX = 4.0;
     this.deltaY = -28.0;
   }
-  draw(context, hoffset, voffset) {
-    super.drawLargeVerticalLine(context, hoffset+1, voffset);
+  draw(context, hoffset, voffset, magFactor) {
+    super.drawLargeVerticalLine(context, hoffset+1, voffset, magFactor);
   }
 }
 
@@ -265,9 +265,9 @@ class FullStop extends ToneMark {
     this.deltaX = 4.0;
     this.deltaY = -28.0;
   }
-  draw(context, hoffset, voffset) {
-    super.drawLargeVerticalLine(context, hoffset-1, voffset);
-    super.drawLargeVerticalLine(context, hoffset+3, voffset);
+  draw(context, hoffset, voffset, magFactor) {
+    super.drawLargeVerticalLine(context, hoffset-1, voffset, magFactor);
+    super.drawLargeVerticalLine(context, hoffset+3, voffset, magFactor);
   }
 }
 
@@ -275,7 +275,7 @@ class SyllabicConsonant extends ToneMark {
   constructor() {
     super();
   }
-  draw(context, hoffset, voffset) {
+  draw(context, hoffset, voffset, magFactor) {
   }
   size() {
     return 0;
