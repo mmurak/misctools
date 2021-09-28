@@ -35,7 +35,7 @@ let help = document.createElement("input");
 help.type = "button";
 help.value = "簡単な説明"
 help.addEventListener("click", function() {
-  alert("・TSMの入力はESCキーに続いて以下の2文字を入力\n  Low-Fall: lf    High-Fall: hf\n  Low-Rise: lr    High-Rise: hr\n  Fall-Rise: fr    Rise-Fall: rf\n  Mid-Level: ml\n  高ストレス（初）: h1    低ストレス（初）: l1\n  高ストレス: h2    低ストレス: l2\n  下降調: h3    上昇調: l3\n  高前頭部: hp\n  IP: ip    文末: fs\n\n・なお、URLに以下のパラメーターを指定可能\n  フォントサイズ（デフォルトは27）: fontsize\n  TSM倍率（デフォルトは1.0）: magfactor\n　　なお、お気に入りは TSMEdit.html?fontsize=15&magfactor=0.6\n\n・また、マウスドラッグでフリーハンド描画が可能（シフトキーを押しながらドラッグで赤、optionキーを押しながらドラッグで緑）\n\n・ファイル保存機能はないものの、内部コード（Unicodeのsubscript領域を流用）で他エディターとコピー&ペーストでのやり取りが可能");
+  alert("・TSMの入力はESCキーに続いて以下の2文字を入力\n  Low-Fall: lf    High-Fall: hf\n  Low-Rise: lr    High-Rise: hr\n  Fall-Rise: fr    Rise-Fall: rf\n  Mid-Level: ml\n  高ストレス（初）: h1    低ストレス（初）: l1\n  高ストレス: h2    低ストレス: l2\n  下降調: h3    上昇調: l3\n  高前頭部: hp\n  IP: ip    文末: fs\n\n・なお、URLに以下のパラメーターを指定可能\n  フォントサイズ（デフォルトは27）: fontsize\n  TSM倍率（デフォルトは1.0）: magfactor\n  行間（デフォルトは15ピクセル）： spacing\n　　なお、お気に入りは TSMEdit.html?fontsize=15&magfactor=0.6&spacing=10\n\n・また、マウスドラッグでフリーハンド描画が可能（シフトキーを押しながらドラッグで赤、optionキーを押しながらドラッグで緑）\n\n・ファイル保存機能はないものの、内部コード（Unicodeのsubscript領域を流用）で他エディターとコピー&ペーストでのやり取りが可能");
 });
 let br3 = document.createElement("br");
 const stepback = document.createElement("input");
@@ -54,12 +54,13 @@ stepback.addEventListener("click", function() {
 let ParmList = null;
 
 let fontSize = getParm("fontsize", "27");
-let magFactor = getParm("magfactor", "1.0");
+let magFactor = Number(getParm("magfactor", "1.0"));
+let vextra = Number(getParm("spacing", "15"));
 
 let nd = wrapWithDiv([gate.getGate(), br1, button, outButton, br2, help, br3, stepback], "float:right;");
 base.addLayer(nd, "right:10px !important;", 80)
 
-let cCanvas = new CompositeCanvas(800, 500, fontSize + "pt Times New Roman", 20, 20, 30, magFactor);
+let cCanvas = new CompositeCanvas(800, 500, fontSize + "pt Times New Roman", 20, 20, vextra, magFactor);
 window.addEventListener("blur", function (evt) {
   cCanvas._hideBlinkingCursor();
 });
