@@ -1,0 +1,163 @@
+<html>
+  <head>
+    <title>Extreme Listening Test</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
+    <style>
+        .control-button{
+            width: 48%;
+            min-width: 200px;
+            max-width: 1600px;
+            padding: 30px 10px 30px 10px;
+            font-size: 200%;
+            box-sizing: border-box;
+            border: 1px solid #68779a;
+            background: #ccccff;
+            cursor: pointer;
+        }
+        .control-button:active {
+            box-shadow: inset 0 0 2px rgba(128, 128, 128, 0.1);
+            transform: translateY(2px);
+        }
+        .answer-button{
+            width: 48%;
+            min-width: 200px;
+            max-width: 1600px;
+            padding: 30px 10px 30px 10px;
+            font-size: 200%;
+            box-sizing: border-box;
+            border: 1px solid #68779a;
+            background: #cbe8fa;
+            cursor: pointer;
+        }
+        .answer-button:active {
+            box-shadow: inset 0 0 2px rgba(128, 128, 128, 0.1);
+            transform: translateY(2px);
+        }
+    </style>
+    </head>
+    <body>
+        <audio id="AudioElement"></audio>
+        <h1>Extreme Listening Test <label id="Header"></label></h1>
+        <br/>
+        <input type="button" id="PlayButton"  class="control-button" value="Play" onclick="play();">
+        <input type="button" id="NextButton" class="control-button" value="Next" onclick="nextClip();" disabled="true">
+        <hr>
+        <input type="button" id="Option1" class="answer-button" onclick="option1click();" disabled="true">
+        <input type="button" id="Option2" class="answer-button" onclick="option2click();" disabled="true">
+        <br/>
+        <div align="center"><font size="7"><label id="Verdict"></label></font></div>
+        <div class="footer" style="position:absolute; bottom:10;">The data used in this app is from <a href="https://www.youtube.com/watch?v=HcrVeMYnOS4">Bunched R vs. Retroflex R Tongue Placement by Peachie Speechie</a>.</div>
+        <script>
+            const AudioElement = document.getElementById("AudioElement");
+            const Header = document.getElementById("Header");
+            const PlayButton = document.getElementById("PlayButton");
+            const Option1 = document.getElementById("Option1");
+            const Option2 = document.getElementById("Option2");
+            const Verdict = document.getElementById("Verdict");
+
+            const resourceDir = "./resource/";
+
+            Files = [
+                ['bunched1.mp3', 1],
+                ['bunched2.mp3', 1],
+                ['bunched3.mp3', 1],
+                ['bunched4.mp3', 1],
+                ['retroflex1.mp3', 2],
+                ['retroflex2.mp3', 2],
+                ['retroflex3.mp3', 2],
+                ['retroflex4.mp3', 2],
+            ];
+            Option1.value = "Bunched-r";
+            Option2.value = "Retroflex-r";
+
+            Files = shuffle(Files);
+            let Pointer = 0;
+            let numOfCorrectAns = 0;
+            let FirstTime = true;
+            setHeader();
+
+            AudioElement.addEventListener("ended", function() {
+                PlayButton.disabled = false;
+                if (FirstTime) {
+                    Option1.disabled = false;
+                    Option2.disabled = false;
+                } else {
+                    NextButton.disabled = false;
+                }
+            });
+
+            function play() {
+                AudioElement.src = resourceDir + Files[Pointer][0];
+                PlayButton.disabled = true;
+                PlayButton.value = "Replay";
+                NextButton.disabled = true;
+                Option1.disabled = true;
+                Option2.disabled = true;
+                AudioElement.play();
+            }
+
+            function option1click() {
+                NextButton.disabled = false;
+                Option1.disabled = true;
+                Option2.disabled = true;
+                FirstTime = false;
+                judge(1);
+            }
+
+            function option2click() {
+                NextButton.disabled = false;
+                Option1.disabled = true;
+                Option2.disabled = true;
+                FirstTime = false;
+                judge(2);
+            }
+
+            function judge(val) {
+                if (val == Files[Pointer][1]) {
+                    Verdict.innerHTML = "CORRECT!";
+                    Verdict.style = "background-color: #66ccff";
+                    numOfCorrectAns++;
+                } else {
+                    Verdict.innerHTML = "WRONG!";
+                    Verdict.style = "background-color: #ff99cc";
+                }
+            }
+
+            function nextClip() {
+                Verdict.innerHTML = "";
+                Verdict.style = "background-color: #ffffff";
+                if (Pointer < Files.length - 1) {
+                    PlayButton.disabled = false;
+                    PlayButton.value = "Play";
+                    NextButton.disabled = true;
+                    Pointer++;
+                    setHeader();
+                    FirstTime = true;
+                    if (Pointer == Files.length - 1) {
+                        NextButton.value = "Result";
+                    }
+                } else {
+                    alert("Your score is " + numOfCorrectAns + " out of " + Files.length + "!\n Reload to retry.");
+                }
+            }
+
+            function setHeader() {
+                Header.innerHTML = "#" + (Pointer + 1) + "/" + Files.length;
+            }
+
+            function shuffle(array) {
+                let currentIndex = array.length
+                let randomIndex;
+                while (currentIndex != 0) {
+                    randomIndex = Math.floor(Math.random() * currentIndex);
+                    currentIndex--;
+                    [array[currentIndex], array[randomIndex]] = 
+                        [array[randomIndex], array[currentIndex]];
+                }
+                return array;
+            }
+
+        </script>
+    </body>
+</html>
+
