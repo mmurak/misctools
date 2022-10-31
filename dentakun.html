@@ -1,0 +1,170 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+<head>
+    <title>Calculator?</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
+    <script>
+    </script>
+</head>
+ 
+<body>
+    <table>
+      <tr>
+        <td colspan="4"><input type="text" id="displayArea" value="" disabled style="text-align: right;"></td>
+        <td><span id="opArea"></span></td>
+      </tr>
+      <tr>
+        <td><input type="button" value="漆" onclick="clicked(this)"></td>
+        <td><input type="button" value="捌" onclick="clicked(this)"></td>
+        <td><input type="button" value="玖" onclick="clicked(this)"></td>
+        <td><input type="button" value="加" onclick="clicked(this)"></td>
+      </tr>
+      <tr>
+        <td><input type="button" value="肆" onclick="clicked(this)"></td>
+        <td><input type="button" value="伍" onclick="clicked(this)"></td>
+        <td><input type="button" value="陸" onclick="clicked(this)"></td>
+        <td><input type="button" value="減" onclick="clicked(this)"></td>
+      </tr>
+      <tr>
+        <td><input type="button" value="壱" onclick="clicked(this)"></td>
+        <td><input type="button" value="弐" onclick="clicked(this)"></td>
+        <td><input type="button" value="参" onclick="clicked(this)"></td>
+        <td><input type="button" value="乗" onclick="clicked(this)"></td>
+      </tr>
+      <tr>
+        <td><input type="button" value="零" onclick="clicked(this)"></td>
+        <td colspan="2"><input type="button" value=" 消    去 " onclick="clicked(this)"></td>
+        <td><input type="button" value="除" onclick="clicked(this)"></td>
+      </tr>
+    </table>
+    <script>
+    // Globals
+    let lvalue = 0;
+    let rvalue = 0;
+    let operatorStr = "";
+    const romanArray = [[1000, "M"], [900, "CM"], [500, "D"], [400, "CD"], [100, "C"], [90, "XC"], [50, "L"], [40, "XL"], [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
+    let displayArea = document.getElementById("displayArea");
+    let opArea = document.getElementById("opArea");
+    //
+    function romanise(val) {
+        let result = "";
+        let ptr = 0;
+        while(val > 0 && ptr < romanArray.length) {
+            while (val >= romanArray[ptr][0]) {
+                result += romanArray[ptr][1];
+                val -= romanArray[ptr][0];
+            }
+            ptr++;
+        }
+        return result;
+    }
+    function concatValue(num) {
+        if (operatorStr == "") {
+            lvalue = lvalue * 10 + num;
+            displayArea.value = romanise(lvalue);
+        } else {
+            rvalue = rvalue * 10 + num;
+            displayArea.value = romanise(rvalue);
+        }
+    }
+    function calc(op, lv, rv) {
+        console.log("OP:" + op + "  LV:" + lv + "  RV:" + rv);
+        switch (op) {
+            case "加" :
+                return lv + rv;
+            case "減" :
+                if (lv < rv) {
+                    return lv;
+                } else {
+                    return lv - rv;
+                }
+            case "乗" :
+                return lv * rv;
+            case "除" :
+                if (rv == 0) {
+                    return lv;
+                } else {
+                    return Math.floor(lv / rv);
+                }
+            default:
+        }
+    }
+    function clicked(obj) {
+        switch (obj.value) {
+            case " 消    去 " :
+                lvalue = 0;
+                rvalue = 0;
+                operatorStr = "";
+                displayArea.value = "";
+                opArea.innerHTML = "";
+                break;
+            case "零" :
+                concatValue(0);
+                break;
+            case "壱" :
+                concatValue(1);
+                break;
+            case "弐" :
+                concatValue(2);
+                break;
+            case "参" :
+                concatValue(3);
+                break;
+            case "肆" :
+                concatValue(4);
+                break;
+            case "伍" :
+                concatValue(5);
+                break;
+            case "陸" :
+                concatValue(6);
+                break;
+            case "漆" :
+                concatValue(7);
+                break;
+            case "捌" :
+                concatValue(8);
+                break;
+            case "玖" :
+                concatValue(9);
+                break;
+            case "加" :
+                if (operatorStr != "") {
+                    lvalue = calc(operatorStr, lvalue, rvalue);
+                    displayArea.value = romanise(lvalue);
+                    rvalue = 0;
+                }
+                operatorStr = opArea.innerHTML = "加";
+                break;
+            case "減" :
+                if (operatorStr != "") {
+                    lvalue = calc(operatorStr, lvalue, rvalue);
+                    displayArea.value = romanise(lvalue);
+                    rvalue = 0;
+                }
+                operatorStr = opArea.innerHTML = "減";
+                break;
+            case "乗" :
+                if (operatorStr != "") {
+                    lvalue = calc(operatorStr, lvalue, rvalue);
+                    displayArea.value = romanise(lvalue);
+                    rvalue = 0;
+                }
+                operatorStr = opArea.innerHTML = "乗";
+                break;
+            case "除" :
+                if (operatorStr != "") {
+                    lvalue = calc(operatorStr, lvalue, rvalue);
+                    displayArea.value = romanise(lvalue);
+                    rvalue = 0;
+                }
+                operatorStr = opArea.innerHTML = "除";
+                break;
+            default:
+        }
+    }
+    </script>
+</body>
+</html>
