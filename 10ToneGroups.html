@@ -203,19 +203,22 @@
             controllers[i].addEventListener("change", analyse);
         }
         function analyse() {
-            let str =
-                coder(lp) + coder(hp) +
-                coder(h1) + coder(l1) + coder(h3) + coder(l3);
+            let str = coder(lp) + coder(hp);
+            if (h0.checked) {
+                str += "----";
+            } else {
+                str += coder(h1) + coder(l1) + coder(h3) + coder(l3);
+            }
             if (n0.checked) {
-                str += ".";
+                str += ".......";
             } else if (hflr.checked) {
                 str += "-OO----";
             } else {
                 str  +=
                 coder(lf) + coder(hf) + coder(lr) + coder(fr) + coder(hr) + coder(rf) + coder(ml);
             }
-//            console.log(str);
-            searchAndDisplay(str);
+            console.log(str);
+            searchAndDisplay("^" + str + "$");
         }
         function coder(flag) {
             if (flag.checked) {
@@ -236,8 +239,10 @@
             }
             a1.style = a2.style = a3.style = a4.style = a5.style = a6.style = a7.style = a8.style = a9.style = a10.style = "color: lightgrey;"; 
             Array.from(pool).forEach((elem) => {
+console.log("elem: " + elem);
                 let dat = elem.split(":");
-                if ((dat[1] == "E") && (str.substr(6, 1) != ".")) {
+//                if ((dat[1] == "E") && (str.substr(6, 7) != ".......")) {
+                if (dat[1] == "E") {
                     document.getElementById(dat[0]).style = "color: red;";
                 } else {
                     document.getElementById(dat[0]).style = "color: black;";
