@@ -84,7 +84,7 @@
                 <span id="A8">ジャックナイフ型</span><br/>
                 <span id="A9">高飛び込み型</span><br/>
                 <span id="A10">テラス型</span><br/>
-                <span>　※ 赤字は強調</span><br/>
+                <span>　※ <span style="color: red;">赤字</span>は強調</span><br/>
         </div>
 
         <script>
@@ -217,7 +217,6 @@
                 str  +=
                 coder(lf) + coder(hf) + coder(lr) + coder(fr) + coder(hr) + coder(rf) + coder(ml);
             }
-            console.log(str);
             searchAndDisplay("^" + str + "$");
         }
         function coder(flag) {
@@ -239,7 +238,6 @@
             }
             a1.style = a2.style = a3.style = a4.style = a5.style = a6.style = a7.style = a8.style = a9.style = a10.style = "color: lightgrey;"; 
             Array.from(pool).forEach((elem) => {
-console.log("elem: " + elem);
                 let dat = elem.split(":");
 //                if ((dat[1] == "E") && (str.substr(6, 7) != ".......")) {
                 if (dat[1] == "E") {
