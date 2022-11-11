@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <title>10 tone groups (O'Connor&Arnold)</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
+        <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
+        <style>
+            .container{
+                display: flex;
+                width: 100%;
+                justify-content: flex-start;
+            }
+            .flex-elem{
+                width: 15%;
+            }
+            .explanation{
+                width:40%;
+                background-color: #d1e4ff;
+            }
+            @media screen and (max-width: 959px) {
+                h3{
+                    font-size:120%;
+                }
+                .container{
+                    font-size:１２0%;
+                }
+                .flex-elem{
+                    width:100%;
+                }
+                .explanation{
+                    width:100%;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <h3>10のトーングループ(Intonation of Colloquial Englishより)</h3>
+        <input type="button" value="クリア" onclick="reset();">
+        <div class="container">
+            <div class="flex-elem">
+                前頭部<br/>
+                <input type="radio" name="prehead" class="ctrl" id="hp">高前頭部<br/>
+                <input type="radio" name="prehead" class="ctrl" id="lp">低前頭部<br/>
+                <input type="radio" name="prehead" class="ctrl" id="p0" checked>なし<br/>
+            </div>
+
+            <div class="flex-elem">
+                頭部<br/>
+                <input type="radio" name="head" class="ctrl" id="h1">高頭部<br/>
+                <input type="radio" name="head" class="ctrl" id="h3">下降頭部<br/>
+                <input type="radio" name="head" class="ctrl" id="l1">低頭部<br/>
+                <input type="radio" name="head" class="ctrl" id="l3">上昇頭部<br/>
+                <input type="radio" name="head" class="ctrl" id="h0" checked>なし<br/>
+            </div>
+
+            <div class="flex-elem">
+                音調核<br/>
+                <input type="radio" name="nucleus" class="ctrl" id="hr">高上昇調<br/>
+                <input type="radio" name="nucleus" class="ctrl" id="hf">高下降調<br/>
+                <input type="radio" name="nucleus" class="ctrl" id="rf">上昇下降調<br/>
+                <input type="radio" name="nucleus" class="ctrl" id="hflr">高下降調＋<br/>　　低上昇調<br/>
+                <input type="radio" name="nucleus" class="ctrl" id="fr">下降上昇調<br/>
+                <input type="radio" name="nucleus" class="ctrl" id="ml">中平坦調<br/>
+                <input type="radio" name="nucleus" class="ctrl" id="lr">低上昇調<br/>
+                <input type="radio" name="nucleus" class="ctrl" id="lf">低下降調<br/>
+                <input type="radio" name="nucleus" class="ctrl" id="n0" checked>なし<br/>
+            </div>
+
+            <div class="flex-elem">
+                尾部<br/>
+                <input type="radio" name="tail" class="ctrl" id="th">高尾部<br/>
+                <input type="radio" name="tail" class="ctrl" id="tl">低尾部<br/>
+                <input type="radio" name="tail" class="ctrl" id="t0" checked>なし<br/>
+            </div>
+
+            <div class="flex-elem explanation">
+                <span id="A1">低落下型</span><br/>
+                <span id="A2">高落下型</span><br/>
+                <span id="A3">離陸型</span><br/>
+                <span id="A4">低バウンド型</span><br/>
+                <span id="A5">スイッチバック型</span><br/>
+                <span id="A6">幅跳び型</span><br/>
+                <span id="A7">高バウンド型</span><br/>
+                <span id="A8">ジャックナイフ型</span><br/>
+                <span id="A9">高飛び込み型</span><br/>
+                <span id="A10">テラス型</span><br/>
+                <span>　※ 赤字は強調</span><br/>
+        </div>
+
+        <script>
+        // Global constants
+        const hp = document.getElementById("hp");
+        const lp = document.getElementById("lp");
+        const p0 = document.getElementById("p0");
+        const h1 = document.getElementById("h1");
+        const h3 = document.getElementById("h3");
+        const l1 = document.getElementById("l1");
+        const l3 = document.getElementById("l3");
+        const h0 = document.getElementById("h0");
+        const hr = document.getElementById("hr");
+        const hf = document.getElementById("hf");
+        const rf = document.getElementById("rf");
+        const ml = document.getElementById("ml");
+        const fr = document.getElementById("fr");
+        const lr = document.getElementById("lr");
+        const lf = document.getElementById("lf");
+        const ｈｆｌｒ = document.getElementById("ｈｆｌｒ");
+        const n0 = document.getElementById("n0");
+        const th = document.getElementById("th");
+        const tl = document.getElementById("tl");
+        const t0 = document.getElementById("t0");
+        const a1 = document.getElementById("A1");
+        const a2 = document.getElementById("A2");
+        const a3 = document.getElementById("A3");
+        const a4 = document.getElementById("A4");
+        const a5 = document.getElementById("A5");
+        const a6 = document.getElementById("A6");
+        const a7 = document.getElementById("A7");
+        const a8 = document.getElementById("A8");
+        const a9 = document.getElementById("A9");
+        const a10 = document.getElementById("A10");
+        let dict = [
+            '-- ---- O------:A1:N',       // The Low Drop
+            '-- O--- O------:A1:N',       // The Low Drop
+            'O- ---- O------:A1:N',       // The Low Drop
+            'O- O--- O------:A1:N',       // The Low Drop
+            '-O ---- O------:A1:E',
+            '-O O--- O------:A1:E',
+            
+            '-- ---- -O-----:A2:N',       // The High Drop
+            '-- O--- -O-----:A2:N',       // The High Drop
+            'O- ---- -O-----:A2:N',       // The High Drop
+            'O- O--- -O-----:A2:N',       // The High Drop
+
+            '-O ---- -O-----:A2:E',
+            '-O O--- -O-----:A2:E',
+
+            '-- ---- --O----:A3:N',       // The Take-Off
+            '-- -O-- --O----:A3:N',       // The Take-Off
+            'O- ---- --O----:A3:N',       // The Take-Off
+            'O- -O-- --O----:A3:N',       // The Take-Off
+ 
+            '-- -O-- --O----:A3:N',       // The Take-Off
+            '-O -O-- --O----:A3:E',       // The Take-Off
+            
+            '-- O--- --O----:A4:N',       // The Low Bounce 1
+            'O- O--- --O----:A4:N',       // The Low Bounce 1
+
+            '-- O--- --O----:A4:N',       // The Low Bounce 1
+            '-O O--- --O----:A4:E',       // The Low Bounce 1
+
+            '-O ---- --O----:A4:N',       // The Low Bounce 2
+
+            '-- ---- ---O---:A5:N',       // The Switchback
+            '-- --O- ---O---:A5:N',       // The Switchback
+            'O- ---- ---O---:A5:N',       // The Switchback
+            'O- --O- ---O---:A5:N',       // The Switchback
+
+            '-O ---- ---O---:A5:E',
+            '-O --O- ---O---:A5:E',
+
+            '-- ---O -O-----:A6:N',       // The Long Jump
+            'O- ---O -O-----:A6:N',       // The Long Jump
+
+            '-O ---O -O-----:A6:E',
+
+            '-- ---- ----O--:A7:N',       // The High Bounce
+            '-- O--- ----O--:A7:N',       // The High Bounce
+            'O- ---- ----O--:A7:N',       // The High Bounce
+            'O- O--- ----O--:A7:N',       // The High Bounce
+
+            '-O ---- ----O--:A7:E',
+            '-O O--- ----O--:A7:E',
+
+            '-- ---- -----O-:A8:N',       // The Jackknife
+            '-- O--- -----O-:A8:N',       // The Jackknife
+            'O- ---- -----O-:A8:N',       // The Jackknife
+            'O- O--- -----O-:A8:N',       // The Jackknife
+
+            '-O ---- -----O-:A8:E',
+            '-O O--- -----O-:A8:E',
+
+            '-- ---- -OO----:A9:N',       // The High Dive
+            '-- O--- -OO----:A9:N',       // The High Dive
+            'O- ---- -OO----:A9:N',       // The High Dive
+            'O- O--- -OO----:A9:N',       // The High Dive
+
+            '-O ---- -OO----:A9:E',
+            '-O O--- -OO----:A9:E',
+
+            '-- ---- ------O:A10:N',       // The Terrace
+            '-- O--- ------O:A10:N',       // The Terrace
+            'O- ---- ------O:A10:N',       // The Terrace
+            'O- O--- ------O:A10:N',       // The Terrace
+
+            '-O ---- ------O:A10:E',
+            '-O O--- ------O:A10:E',
+        ];
+        dict = dict.map((a) => {return a.replaceAll(" ", "");})
+        analyse();
+        const controllers = document.getElementsByClassName("ctrl");
+        for(let i = 0; i < controllers.length; i++) {
+            controllers[i].addEventListener("change", analyse);
+        }
+        function analyse() {
+            let str =
+                coder(lp) + coder(hp) +
+                coder(h1) + coder(l1) + coder(h3) + coder(l3);
+            if (n0.checked) {
+                str += ".";
+            } else if (hflr.checked) {
+                str += "-OO----";
+            } else {
+                str  +=
+                coder(lf) + coder(hf) + coder(lr) + coder(fr) + coder(hr) + coder(rf) + coder(ml);
+            }
+//            console.log(str);
+            searchAndDisplay(str);
+        }
+        function coder(flag) {
+            if (flag.checked) {
+                return "O";
+            } else {
+                return "-";
+            }
+        }
+        function searchAndDisplay(str) {
+            let pool = new Set();
+            let pattern = new RegExp(str);
+            for(let i = 0; i < dict.length; i++) {
+                let sepPt = dict[i].indexOf(":");
+                let kvalue = dict[i].substring(0, sepPt);
+                if (kvalue.match(pattern)) {
+                    pool.add(dict[i].substring(sepPt+1));
+                }
+            }
+            a1.style = a2.style = a3.style = a4.style = a5.style = a6.style = a7.style = a8.style = a9.style = a10.style = "color: lightgrey;"; 
+            Array.from(pool).forEach((elem) => {
+                let dat = elem.split(":");
+                if ((dat[1] == "E") && (str.substr(6, 1) != ".")) {
+                    document.getElementById(dat[0]).style = "color: red;";
+                } else {
+                    document.getElementById(dat[0]).style = "color: black;";
+                }
+            });
+        }
+        function reset() {
+            p0.checked = h0.checked = n0.checked = t0.checked = true;
+            analyse();
+        }
+        </script>
+
+    </body>
+</html>
