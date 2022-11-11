@@ -55,15 +55,13 @@
 
             <div class="flex-elem">
                 音調核<br/>
-                <input type="radio" name="nucleus" class="ctrl" id="hr">高上昇調<br/>
-                <input type="radio" name="nucleus" class="ctrl" id="hf">高下降調<br/>
-                <input type="radio" name="nucleus" class="ctrl" id="rf">上昇下降調<br/>
-                <input type="radio" name="nucleus" class="ctrl" id="hflr">高下降調＋<br/>　　低上昇調<br/>
-                <input type="radio" name="nucleus" class="ctrl" id="fr">下降上昇調<br/>
-                <input type="radio" name="nucleus" class="ctrl" id="ml">中平坦調<br/>
-                <input type="radio" name="nucleus" class="ctrl" id="lr">低上昇調<br/>
-                <input type="radio" name="nucleus" class="ctrl" id="lf">低下降調<br/>
-                <input type="radio" name="nucleus" class="ctrl" id="n0" checked>なし<br/>
+                <input type="checkbox" name="nucleus" class="ctrl ctrlN" id="hr" onchange="nucChanged(this);">高上昇調<br/>
+                <input type="checkbox" name="nucleusA" class="ctrl ctrlN" id="hf" onchange="nucChanged(this);">高下降調<br/>
+                <input type="checkbox" name="nucleus" class="ctrl ctrlN" id="rf" onchange="nucChanged(this);">上昇下降調<br/>
+                <input type="checkbox" name="nucleus" class="ctrl ctrlN" id="fr" onchange="nucChanged(this);">下降上昇調<br/>
+                <input type="checkbox" name="nucleus" class="ctrl ctrlN" id="ml" onchange="nucChanged(this);">中平坦調<br/>
+                <input type="checkbox" name="nucleusB" class="ctrl ctrlN" id="lr" onchange="nucChanged(this);">低上昇調<br/>
+                <input type="checkbox" name="nucleus" class="ctrl ctrlN" id="lf" onchange="nucChanged(this);">低下降調<br/>
             </div>
 
             <div class="flex-elem">
@@ -105,7 +103,6 @@
         const lr = document.getElementById("lr");
         const lf = document.getElementById("lf");
         const ｈｆｌｒ = document.getElementById("ｈｆｌｒ");
-        const n0 = document.getElementById("n0");
         const th = document.getElementById("th");
         const tl = document.getElementById("tl");
         const t0 = document.getElementById("t0");
@@ -202,6 +199,29 @@
         for(let i = 0; i < controllers.length; i++) {
             controllers[i].addEventListener("change", analyse);
         }
+        const nucButtons = document.getElementsByClassName("ctrlN");
+        function eraseAllNucs() {
+            for(let i = 0; i < nucButtons.length; i++) {
+                nucButtons[i].checked = false;
+            }
+        }
+        function nucChanged(obj) {
+            let backup = obj;
+            if (!obj.checked) { // cuz this function is called after house-keeping process
+                obj.checked = false;
+                return;
+            }
+            if ((obj == hf) || (obj == lr)) {
+                let preserveHf = hf.checked;
+                let preserveLr = lr.checked;
+                eraseAllNucs();
+                hf.checked = preserveHf;
+                lr.checked = preserveLr;
+            } else {
+                eraseAllNucs();
+            }
+            backup.checked = true;
+        }
         function analyse() {
             let str = coder(lp) + coder(hp);
             if (h0.checked) {
@@ -209,13 +229,9 @@
             } else {
                 str += coder(h1) + coder(l1) + coder(h3) + coder(l3);
             }
-            if (n0.checked) {
-                str += ".......";
-            } else if (hflr.checked) {
-                str += "-OO----";
-            } else {
-                str  +=
-                coder(lf) + coder(hf) + coder(lr) + coder(fr) + coder(hr) + coder(rf) + coder(ml);
+            str  += coder(lf) + coder(hf) + coder(lr) + coder(fr) + coder(hr) + coder(rf) + coder(ml);
+            if (str == "-------") {
+                str = ".......";
             }
             searchAndDisplay("^" + str + "$");
         }
@@ -248,7 +264,8 @@
             });
         }
         function reset() {
-            p0.checked = h0.checked = n0.checked = t0.checked = true;
+            p0.checked = h0.checked = t0.checked = true;
+            eraseAllNucs()
             analyse();
         }
         </script>
