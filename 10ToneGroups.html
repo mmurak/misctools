@@ -17,6 +17,45 @@
                 width:40%;
                 background-color: #d1e4ff;
             }
+            input[type=checkbox] {
+                display: none;
+            }
+            input[type="checkbox"]:checked + label {
+                background: #ff4500;
+                color: #ffffff;
+            }
+            .label {
+                display: block;
+                float: left;
+                width: 100px;
+                height: 25px;
+                text-align: center;
+                line-height: 25px;
+                padding-left: 5px;
+                padding-right: 5px;
+                cursor: pointer;
+                color: #000000;
+                background-color: #f0f8ff;
+                margin: 5px; /* ラベル外側の余白を指定する */ 
+                border: 2px solid #006DD9;/* ラベルの境界線を実線で指定する */ 
+                border-radius: 5px;
+            }
+            .label2 {
+                display: block;
+                float: left;
+                width: 100px;
+                height: 25px;
+                text-align: center;
+                line-height: 25px;
+                padding-left: 5px;
+                padding-right: 5px;
+                cursor: pointer;
+                color: #000000;
+                background-color: #e6e6fa;
+                margin: 5px; /* ラベル外側の余白を指定する */ 
+                border: 2px solid #006DD9;/* ラベルの境界線を実線で指定する */ 
+                border-radius: 5px;
+            }
             @media screen and (max-width: 959px) {
                 h3{
                     font-size:120%;
@@ -39,36 +78,36 @@
         <div class="container">
             <div class="flex-elem">
                 前頭部<br/>
-                <input type="radio" name="prehead" class="ctrl" id="hp">高前頭部<br/>
-                <input type="radio" name="prehead" class="ctrl" id="lp">低前頭部<br/>
-                <input type="radio" name="prehead" class="ctrl" id="p0" checked>なし<br/>
+                <input type="radio" name="prehead" class="ctrl" id="hp"><label for="hp">高前頭部</label><br/>
+                <input type="radio" name="prehead" class="ctrl" id="lp"><label for="lp">低前頭部</label><br/>
+                <input type="radio" name="prehead" class="ctrl" id="p0" checked><label for="p0">なし</label><br/>
             </div>
 
             <div class="flex-elem">
                 頭部<br/>
-                <input type="radio" name="head" class="ctrl" id="h1">高頭部<br/>
-                <input type="radio" name="head" class="ctrl" id="h3">下降頭部<br/>
-                <input type="radio" name="head" class="ctrl" id="l1">低頭部<br/>
-                <input type="radio" name="head" class="ctrl" id="l3">上昇頭部<br/>
-                <input type="radio" name="head" class="ctrl" id="h0" checked>なし<br/>
+                <input type="radio" name="head" class="ctrl" id="h1"><label for="h1">高頭部</label><br/>
+                <input type="radio" name="head" class="ctrl" id="h3"><label for="h3">下降頭部</label><br/>
+                <input type="radio" name="head" class="ctrl" id="l1"><label for="l1">低頭部</label><br/>
+                <input type="radio" name="head" class="ctrl" id="l3"><label for="l3">上昇頭部</label><br/>
+                <input type="radio" name="head" class="ctrl" id="h0" checked><label for="h0">なし</label><br/>
             </div>
 
             <div class="flex-elem">
                 音調核<br/>
-                <input type="checkbox" name="nucleus" class="ctrl ctrlN" id="hr" onchange="nucChanged(this);">高上昇調<br/>
-                <input type="checkbox" name="nucleusA" class="ctrl ctrlN" id="hf" onchange="nucChanged(this);">高下降調<br/>
-                <input type="checkbox" name="nucleus" class="ctrl ctrlN" id="rf" onchange="nucChanged(this);">上昇下降調<br/>
-                <input type="checkbox" name="nucleus" class="ctrl ctrlN" id="fr" onchange="nucChanged(this);">下降上昇調<br/>
-                <input type="checkbox" name="nucleus" class="ctrl ctrlN" id="ml" onchange="nucChanged(this);">中平坦調<br/>
-                <input type="checkbox" name="nucleusB" class="ctrl ctrlN" id="lr" onchange="nucChanged(this);">低上昇調<br/>
-                <input type="checkbox" name="nucleus" class="ctrl ctrlN" id="lf" onchange="nucChanged(this);">低下降調<br/>
+                <input type="checkbox" name="nucleus" class="ctrlN" id="hr" onchange="nucChanged(this);"><label for="hr" class="label">高上昇調</label><br/>
+                <input type="checkbox" name="nucleusA" class="ctrlN" id="hf" onchange="nucChanged(this);"><label for="hf" class="label2">高下降調</label><br/>
+                <input type="checkbox" name="nucleus" class="ctrlN" id="rf" onchange="nucChanged(this);"><label for="rf" class="label">上昇下降調</label><br/>
+                <input type="checkbox" name="nucleus" class="ctrlN" id="fr" onchange="nucChanged(this);"><label for="fr" class="label">下降上昇調</label><br/>
+                <input type="checkbox" name="nucleus" class="ctrlN" id="ml" onchange="nucChanged(this);"><label for="ml" class="label">中平坦調</label><br/>
+                <input type="checkbox" name="nucleusB" class="ctrlN" id="lr" onchange="nucChanged(this);"><label for="lr" class="label2">低上昇調</label><br/>
+                <input type="checkbox" name="nucleus" class="ctrlN" id="lf" onchange="nucChanged(this);"><label for="lf" class="label">低下降調</label><br/>
             </div>
 
             <div class="flex-elem">
                 尾部<br/>
-                <input type="radio" name="tail" class="ctrl" id="th">高尾部<br/>
-                <input type="radio" name="tail" class="ctrl" id="tl">低尾部<br/>
-                <input type="radio" name="tail" class="ctrl" id="t0" checked>なし<br/>
+                <input type="radio" name="tail" class="ctrl" id="th"><label for="th">高尾部</label><br/>
+                <input type="radio" name="tail" class="ctrl" id="tl"><label for="tl">低尾部</label><br/>
+                <input type="radio" name="tail" class="ctrl" id="t0" checked><label for="t0">なし</label><br/>
             </div>
 
             <div class="flex-elem explanation">
@@ -102,7 +141,6 @@
         const fr = document.getElementById("fr");
         const lr = document.getElementById("lr");
         const lf = document.getElementById("lf");
-        const ｈｆｌｒ = document.getElementById("ｈｆｌｒ");
         const th = document.getElementById("th");
         const tl = document.getElementById("tl");
         const t0 = document.getElementById("t0");
@@ -194,12 +232,12 @@
             '-O O--- ------O:A10:E',
         ];
         dict = dict.map((a) => {return a.replaceAll(" ", "");})
-        analyse();
         const controllers = document.getElementsByClassName("ctrl");
         for(let i = 0; i < controllers.length; i++) {
             controllers[i].addEventListener("change", analyse);
         }
         const nucButtons = document.getElementsByClassName("ctrlN");
+        analyse();
         function eraseAllNucs() {
             for(let i = 0; i < nucButtons.length; i++) {
                 nucButtons[i].checked = false;
@@ -221,6 +259,7 @@
                 eraseAllNucs();
             }
             backup.checked = true;
+            analyse();
         }
         function analyse() {
             let str = coder(lp) + coder(hp);
