@@ -247,6 +247,7 @@
             let backup = obj;
             if (!obj.checked) { // cuz this function is called after house-keeping process
                 obj.checked = false;
+                analyse();
                 return;
             }
             if ((obj == hf) || (obj == lr)) {
