@@ -157,7 +157,7 @@ function festival(wrd, no) {
         G.downNo += 1;
         if (G.downNo >= G.seq) {
             G.entryBtn.focus();
-            G.randomCongrats.do();
+            G.randomCongrats.do(0);
         }
     } else if (inp.value == "???") {
         inp.style = "display: none";
