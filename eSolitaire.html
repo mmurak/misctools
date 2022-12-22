@@ -46,6 +46,7 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script src="./RandomCongrats.js"></script>
 
 <script>
 
@@ -79,6 +80,7 @@ class GlobalManager {
         this.wordlist = WORDLIST.map((w) => {
             return new RegExp("([\\s'\\\"])(" + w + ")([\\s,\\.:;'\\\"])", "ig");
         });
+        this.randomCongrats = new RandomCongrats();
     }
 }
 
@@ -155,31 +157,7 @@ function festival(wrd, no) {
         G.downNo += 1;
         if (G.downNo >= G.seq) {
             G.entryBtn.focus();
-            let defaults = {
-                spread: 360,
-                ticks: 50,
-                gravity: 0,
-                decay: 0.94,
-                startVelocity: 30,
-                shapes: ['star'],
-//                colors: ['FFE400', 'FFBD00', 'E89400', 'FFCA6C', 'FDFFB8']
-                colors: ['3498db', '82e0aa', 'f9e79f', 'a569bd', 'e74c3c']
-            };
-            function shoot() {
-                confetti({
-                    ...defaults,
-                    particleCount: 40,
-                    scalar: 1.2,
-                });
-                confetti({
-                    ...defaults,
-                    particleCount: 10,
-                    scalar: 0.75,
-                });
-            }
-            setTimeout(shoot, 0);
-            setTimeout(shoot, 100);
-            setTimeout(shoot, 200);
+            G.randomCongrats.do();
         }
     } else if (inp.value == "???") {
         inp.style = "display: none";
