@@ -78,6 +78,7 @@ class RandomCongrats {
                 angle: 60,
                 spread: 55,
                 origin: { x: 0 },
+                shapes: ['star'],
                 colors: ['#ffcc00', '#0000ff']
             });
             confetti({
@@ -85,6 +86,7 @@ class RandomCongrats {
                 angle: 120,
                 spread: 55,
                 origin: { x: 1 },
+                shapes: ['star'],
                 colors: ['#ffcc00', '#0000ff']
             });
             if (Date.now() < end) {
