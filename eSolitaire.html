@@ -54,7 +54,14 @@
     </head>
     <body id="body">
         <div id="hSection">
-            <input type="button" id="entryBtn" class="btn" value="問題文入力" onclick="openTAdialog();"><br/>
+            <div style="display: flex;justify-content: space-between;">
+                <input type="button" id="entryBtn" class="btn" value="問題文入力" onclick="openTAdialog();">
+                <div>
+                    <input type="button" value="▲" onclick="fixEm(-1);">
+                    <input type="button" value="▼" onclick="fixEm(+1);">
+                </div>
+                <br/>
+            </div>
             <span id="selections1"></span><br/>
             <span id="selections2"></span>
         </div>
@@ -109,6 +116,7 @@ class GlobalManager {
         });
         this.randomCongrats = new RandomCongrats();
         this.lastSelected = null;
+        this.emSize = 5;
     }
 }
 
@@ -126,6 +134,11 @@ for (let s of WORDLIST) {
 sels1 += "　<a href='#' onclick='clicked(\"???\");'>???</a> ";
 G.selections1.innerHTML = sels1;
 G.selections2.innerHTML = sels2;
+
+function fixEm(d) {
+    G.emSize += d;
+    G.playfield.style = "top: " + G.emSize + "em;";
+}
 
 function clicked(w) {
     if (G.lastSelected == null)  return;
