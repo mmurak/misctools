@@ -30,7 +30,7 @@
             }
             #playfield {
                 position: absolute;
-                top: 100px;
+                top: 5em;
                 z-index: 1;
             }
             a{
@@ -49,11 +49,6 @@
                 .acol {
                     font-size: 30px;
                 }
-            }
-            #playfield {
-                position: absolute;
-                top: 120px;
-                z-index: 1;
             }
         </style>
     </head>
@@ -217,7 +212,8 @@ function festival(wrd, no) {
         inp.style = "display: none";
         let spantext = document.getElementById("s" + no);
         spantext.appendChild(document.createTextNode(i));
-        spantext.style = "visibility:visible";
+        spantext.style = "visibility: visible;";
+        spantext.style = "font-weight: bold;";
         spantext.style.color = "green";
         G.downNo += 1;
         if (G.downNo >= G.seq) {
@@ -225,7 +221,7 @@ function festival(wrd, no) {
             G.randomCongrats.do(0);
         }
     } else if (inp.value == "???") {
-        inp.style = "display: none";
+        inp.style = "display: none;";
         let spantext = document.getElementById("s" + no);
         wrd = wrd.replaceAll(/\|\|/g, "または");
         spantext.appendChild(document.createTextNode(wrd));
