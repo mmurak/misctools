@@ -1,7 +1,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
     <head>
-        <title>Unicode TSM writer</title>
+        <title>TSMish writing pad</title>
         <link rel="shortcut icon" href="./orange-kiwi-bird.png">
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
         <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
@@ -30,13 +30,17 @@
             border: 2px solid lightgrey;
             background-color: #e0e0ff;
         }
+        #secondary{
+            border: 2px solid lightgrey;
+            background-color: #e0ffe0;
+        }
         #nucleus{
             border: 2px solid lightgrey;
             background-color: #ffe0e0;
         }
         #separator{
             border: 2px solid lightgrey;
-            background-color: #e0ffe0;
+            background-color: #ffffe0;
         }
         a{
             color: #0000cc;
@@ -51,34 +55,41 @@
         <div id="hSection">
             <div id="controls" style="display: flex;justify-content: start;">
                 <div id="prehead">
-                    <label>Prehead</label><br/>
+                    <label>P.head</label><br/>
                     <a href="#" onclick="clicked('hp');"><span class="hp"></span>⬚</a><br/>
                 </div>
                 <div id="headtail">
-                    <label></label><br/>
+                    <label>Head</label><br/>
                     <a href="#" onclick="clicked('h1');"><span class="h1"></span>⬚</a>
-                    <a href="#" onclick="clicked('h2');"><span class="h2"></span>⬚</a>
                     <a href="#" onclick="clicked('h3');"><span class="h3"></span>⬚</a><br/>
                     <a href="#" onclick="clicked('l1');"><span class="l1"></span>⬚</a>
-                    <a href="#" onclick="clicked('l2');"><span class="l2"></span>⬚</a>
                     <a href="#" onclick="clicked('l3');"><span class="l3"></span>⬚</a>
+                </div>
+                <div id="secondary">
+                    <label></label><br/>
+                    <a href="#" onclick="clicked('h2');"><span class="h2"></span>⬚</a><br/>
+                    <a href="#" onclick="clicked('l2');"><span class="l2"></span>⬚</a>
                 </div>
                 <div id="nucleus">
                     <label>Nucleus</label><br/>
                     <a href="#" onclick="clicked('hr');"><span class="hr"></span>⬚</a>
                     <a href="#" onclick="clicked('hf');"><span class="hf"></span>⬚</a>
-                    <a href="#" onclick="clicked('fr');"><span class="fr"></span>⬚</a>
+                    <a href="#" onclick="clicked('fr');"><span class="fr"></span>⬚</a><br/>
                     <a href="#" onclick="clicked('ml');"><span class="ml"></span>⬚</a><br/>
                     <a href="#" onclick="clicked('lr');"><span class="lr"></span>⬚</a>
                     <a href="#" onclick="clicked('lf');"><span class="lf"></span>⬚</a>
                     <a href="#" onclick="clicked('rf');"><span class="rf"></span>⬚</a>
                 </div>
                 <div id="separator">
-                    <label>Separator</label><br/>
-                    <a href="#" onclick="clicked('ip');"><span class="ip"></span>⬚</a>
+                    <label>Delimiter</label><br/>
+                    <a href="#" onclick="clicked('ip');"><span class="ip"></span>⬚</a><br/>
                     <a href="#" onclick="clicked('fs');"><span class="fs"></span>⬚</a>
                 </div>
-                <a href="./TSMishBriefExplanation.html" style="margin: 0 0 0 auto;" target="_blank">Help</a>
+                <div style="margin: 0 0 0 auto;">
+                <a href="./TSMishBriefExplanation.html" target="_blank">Help</a><br/><br/>
+                <input type="button" value="Copy" onclick="copyData();"><br/><br/>
+                <input type="button" value="Clear" onclick="clearData();">
+                </div>
             </div>
             <textarea id="entryfield"></textarea>
         </div>
@@ -126,6 +137,22 @@ function clicked(str) {
     G.entryfield.value = value.substring(0, start) + G.conversionTable[str] + value.substring(end);
     G.entryfield.selectionStart = start + 1;
     G.entryfield.selectionEnd = start + 1;
+}
+
+function copyData() {
+    if(navigator.clipboard) {
+        let copyText = G.entryfield.value;
+        navigator.clipboard.writeText(copyText).then(function() {
+        });
+    } else {
+        alert("Clipboard function - not supported.");
+    }
+}
+
+function clearData() {
+    G.entryfield.value = "";
+    G.entryfield.start = 0;
+    G.entryfield.end = 0;
 }
 
 </script>
