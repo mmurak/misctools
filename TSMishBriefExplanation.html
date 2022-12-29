@@ -1,0 +1,86 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+    <head>
+        <title>TSM writer -- 簡単な説明</title>
+        <link rel="shortcut icon" href="./orange-kiwi-bird.png">
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
+        <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
+        <link rel="stylesheet" href="./TSM.css">
+        <style>
+        p{
+            font-size: 100%;
+        }
+        </style>
+    </head>
+    <body>
+        <h2>これは何？</h2>
+        <p>　英語のイントネーションを記述するためにロンドン学派が用いている記号（TSM）は2022年12月29日現在、Unicodeには定義されていません。このため何らかの外字登録や画像を用いて表現するのが一般的ですが、SNSなどでのテキスト主体のやり取りを考えた場合、そういった方法は最適ではありません。このため当面は、Unicodeが定義している記号類の中から見かけが似ているものを選択して代替とすることとし、そのための入力サポートを作成してみました。</p>
+
+        <p>　ウェブアプリとして作成しているため、一般的なブラウザー上であればスマートフォン上でも動作するはずです。</p>
+
+        <p>　なお、類似記号の選出は、Twitterの「英語講師たいし(大志)」先生（@commercialpronu）によるものに依拠しています。この場を借りて感謝いたします。</p>
+
+        <h2>イントネーション句の概要</h2>
+
+        <p>　書籍「Intonation of Coloquial English」（J. D. O'connor、G. F. Arnold）では、英語のイントネーションを10のパターンに分類して考察しています。これらパターンを構成する単位が「イントネーション句」と呼ばれるものです。</p>
+
+        <p>このWord Groupの構成要素は以下の通りです。</p>
+
+        <table border="1">
+        <tr><th>構成要素の名前</th><th>説明</th><th>具体的な状況</th></tr>
+        <tr><td>前頭部</td><td>イントネーション句の先頭にある強勢を持たない音節（群）<br/>（ただしイントネーション句の中には前頭部のないものもある）</td><td>高前頭部<br/>低前頭部</td></tr>
+        <tr><td>頭部</td><td>イントネーション句の中で最初に強勢が置かれた音節から、<br/>音調核の直前までの音節（群）<br/>（ただしイントネーション句の中には頭部のないものもある）</td><td>高頭部<br/>低頭部<br/>下降頭部<br/>上昇頭部</td></tr>
+        <tr><td>音調核</td><td>イントネーション句の中で最も重要な核となる部分</td><td>高上昇調<br/>高下降調<br/>低上昇調<br/>低下降調<br/>下降上昇調<br/>上昇下降調<br/>平坦調</td></tr>
+        <tr><td>尾部</td><td>音調核より後ろのイントネーション句末尾までの音節（群）<br/>（ただしイントネーション句の中には尾部のないものもある）</td><td>高尾部<br/>低尾部</td></tr>
+        </table>
+
+        <h2>記号の説明</h2>
+
+        <p>　以下の表中の「⬚」には任意の文字が入ります（TSM記号の位置関係を示すためだけの仮の文字です）。</p>
+
+        <table border="1">
+        <tr><th>使用場所</th><th>正式な記号</th><th>代替の類似記号</th><th>説明</th></tr>
+        <tr><td>前頭部</td><td style="text-align: center;" bgcolor="#eeeeee"><span class="hp"></span>⬚</td><td style="text-align: center;" bgcolor="#eeeeee">‾⬚</td><td bgcolor="#eeeeee">前頭部で高ピッチが続く場合、その先頭に記述する。</td></tr>
+        <tr><td rowspan="6">頭部</td><td style="text-align: center;" bgcolor="#eeeeee">ˈ⬚</td><td style="text-align: center;" bgcolor="#eeeeee">ˈ⬚</td><td bgcolor="#eeeeee">頭部が比較的高いピッチから開始される場合、その先頭（強勢のある部分）に記述する。</td></tr>
+        <tr><td style="text-align: center;" bgcolor="#eeeeee">ˌ⬚</td><td style="text-align: center;" bgcolor="#eeeeee">ˌ⬚</td><td bgcolor="#eeeeee">頭部がかなり低いピッチから開始される場合、その先頭に（強勢のある部分）に記述する。</td></tr>
+        <tr><td style="text-align: center;" bgcolor="#eeeeee"><span class="h3"></span>⬚</td><td style="text-align: center;" bgcolor="#eeeeee">➘⬚</td><td bgcolor="#eeeeee">比較的高いピッチから段階的にピッチが下降する場合、その先頭に記述する。。</td></tr>
+        <tr><td style="text-align: center;" bgcolor="#eeeeee"><span class="l3"></span>⬚</td><td style="text-align: center;" bgcolor="#eeeeee">➚⬚</td><td bgcolor="#eeeeee">かなり低いピッチから段階的にピッチが上昇する場合、その先頭に記述する。</td></tr>
+        <tr><td style="text-align: center;">°⬚</td><td style="text-align: center;">°⬚</td><td>高頭部の場合、「ˈ」と同じピッチで強勢を持つ部分に記述する。<br/>上昇頭部／下降頭部の場合、比較的高いピッチからそこそこ低いピッチまでの、<br/>段階を踏んだ高さで強勢のある部分に記述する。</td></tr>
+        <tr><td style="text-align: center;">｡⬚</td><td style="text-align: center;">｡⬚</td><td>低いピッチから中程度のピッチで強勢を持つ部分に記述する。</td></tr>
+        <tr><td rowspan="9">音調核</td><td style="text-align: center;" bgcolor="#eeeeee"><span class="hr"></span>⬚</td><td style="text-align: center;" bgcolor="#eeeeee">´⬚</td><td bgcolor="#eeeeee">中程度のピッチから高いピッチに向けた上昇調の先頭に記述する。</td></tr>
+        <tr><td style="text-align: center;" bgcolor="#eeeeee"><span class="hf"></span>⬚</td><td style="text-align: center;" bgcolor="#eeeeee">`⬚</td><td bgcolor="#eeeeee">高いピッチからかなり低いピッチに向けた下降調の先頭に記述する。</td></tr>
+        <tr><td style="text-align: center;" bgcolor="#eeeeee"><span class="lr"></span>⬚</td><td style="text-align: center;" bgcolor="#eeeeee">ˏ⬚</td><td bgcolor="#eeeeee">かなり低いピッチから中程度のピッチに向けた上昇調の先頭に記述する。</td></tr>
+        <tr><td style="text-align: center;" bgcolor="#eeeeee"><span class="lf"></span>⬚</td><td style="text-align: center;" bgcolor="#eeeeee">ˎ⬚</td><td bgcolor="#eeeeee">中程度のピッチからかなり低いピッチに向けた下降調の先頭に記述する。</td></tr>
+        <tr><td style="text-align: center;" bgcolor="#eeeeee"><span class="fr"></span>⬚</td><td style="text-align: center;" bgcolor="#eeeeee">ˇ⬚</td><td bgcolor="#eeeeee">そこそこ高いピッチから低いピッチに下降した後、中程度のピッチに上昇する<br/>下降上昇調の先頭に記述する。</td></tr>
+        <tr><td style="text-align: center;" bgcolor="#eeeeee"><span class="rf"></span>⬚</td><td style="text-align: center;" bgcolor="#eeeeee">^⬚</td><td bgcolor="#eeeeee">中程度のピッチから高いピッチに上昇した後、かなり低いピッチに下降する<br/>上昇下降調の先頭に記述する。</td></tr>
+        <tr><td style="text-align: center;" bgcolor="#eeeeee"><span class="ml"></span>⬚</td><td style="text-align: center;" bgcolor="#eeeeee">›⬚</td><td bgcolor="#eeeeee">中程度のピッチからピッチを変えない平坦調の先頭に記述する。</td></tr>
+        <tr><td style="text-align: center;">°⬚</td><td style="text-align: center;">°⬚</td><td>音調核の開始ピッチよりも高いピッチで強勢を持つ部分に記述する。</td></tr>
+        <tr><td style="text-align: center;">｡⬚</td><td style="text-align: center;">｡⬚</td><td>かなり低いピッチで強勢を持つ部分に記述する。</td></tr>
+        <tr><td rowspan="2">尾部</td><td style="text-align: center;">°⬚</td><td style="text-align: center;">°⬚</td><td>比較的高いピッチで強勢を持つ部分に記述する。</td></tr>
+        <tr><td style="text-align: center;">｡⬚</td><td style="text-align: center;">｡⬚</td><td>かなり低いピッチで強勢を持つ部分に記述する。</td></tr>
+        </table>
+
+
+    <h2>代替コードとして使用しているUnicode記号の本来の意味</h2>
+
+        <table border="1">
+        <tr><th>代替記号</th><th>コード</th><th>説明</th></tr>
+        <tr><td style="text-align: center;">‾</td><td>U+203E</td><td>OVERLINE</td></tr>
+        <tr><td style="text-align: center;">ˈ</td><td>U+2C8</td><td>MODIFIER LETTER VERTICAL LINE</td></tr>
+        <tr><td style="text-align: center;">ˌ</td><td>U+2CC</td><td>MODIFIER LETTER LOW VERTICAL LINE</td></tr>
+        <tr><td style="text-align: center;">➘</td><td>U+2798</td><td>HEAVY SOUTH EAST ARROW</td></tr>
+        <tr><td style="text-align: center;">➚</td><td>U+279A</td><td>HEAVY NORTH EAST ARROW</td></tr>
+        <tr><td style="text-align: center;">°</td><td>U+B0</td><td>DEGREE SIGN</td></tr>
+        <tr><td style="text-align: center;">｡</td><td>U+FF61</td><td>HALFWIDTH IDEOGRAPHIC FULL STOP</td></tr>
+        <tr><td style="text-align: center;">´</td><td>U+B4</td><td>ACUTE ACCENT</td></tr>
+        <tr><td style="text-align: center;">`</td><td>U+60</td><td>GRAVE ACCENT</td></tr>
+        <tr><td style="text-align: center;">ˏ</td><td>U+2CF</td><td>MODIFIER LETTER LOW ACUTE ACCENT</td></tr>
+        <tr><td style="text-align: center;">ˎ</td><td>U+2CE</td><td>MODIFIER LETTER LOW GRAVE ACCENT</td></tr>
+        <tr><td style="text-align: center;">ˇ</td><td>U+2C7</td><td>CARON</td></tr>
+        <tr><td style="text-align: center;">^</td><td>U+5E</td><td>CIRCUMFLEX ACCENT</td></tr>
+        <tr><td style="text-align: center;">›</td><td>U+203A</td><td>SINGLE RIGHT-POINTING ANGLE QUOTATION MARK</td></tr>
+        </table>
+
+
+    </body>
+</html>

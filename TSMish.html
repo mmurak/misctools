@@ -1,0 +1,134 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+    <head>
+        <title>Unicode TSM writer</title>
+        <link rel="shortcut icon" href="./orange-kiwi-bird.png">
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
+        <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
+        <link rel="stylesheet" href="./TSM.css">
+        <style>
+        #hSection {
+            position: fixed;
+            width: 100%;
+            padding: 10px 10px 10px 10px;
+            top: 0;
+            left: 0;
+            background-color: white;
+            box-sizing: border-box;
+            font-size: 130%;
+        }
+        #entryfield{
+            font-family: Times New Roman;
+            width: 100%;
+            font-size: 150%;
+        }
+        #prehead{
+            border: 2px solid lightgrey;
+            background-color: #f0f0f0;
+        }
+        #headtail{
+            border: 2px solid lightgrey;
+            background-color: #e0e0ff;
+        }
+        #nucleus{
+            border: 2px solid lightgrey;
+            background-color: #ffe0e0;
+        }
+        #separator{
+            border: 2px solid lightgrey;
+            background-color: #e0ffe0;
+        }
+        a{
+            color: #0000cc;
+            text-decoration: none;
+        }
+        a:visited{
+            color: #0000cc;
+        }
+        </style>
+    </head>
+    <body id="body">
+        <div id="hSection">
+            <div id="controls" style="display: flex;justify-content: start;">
+                <div id="prehead">
+                    <label>Prehead</label><br/>
+                    <a href="#" onclick="clicked('hp');"><span class="hp"></span>⬚</a><br/>
+                </div>
+                <div id="headtail">
+                    <label></label><br/>
+                    <a href="#" onclick="clicked('h1');"><span class="h1"></span>⬚</a>
+                    <a href="#" onclick="clicked('h2');"><span class="h2"></span>⬚</a>
+                    <a href="#" onclick="clicked('h3');"><span class="h3"></span>⬚</a><br/>
+                    <a href="#" onclick="clicked('l1');"><span class="l1"></span>⬚</a>
+                    <a href="#" onclick="clicked('l2');"><span class="l2"></span>⬚</a>
+                    <a href="#" onclick="clicked('l3');"><span class="l3"></span>⬚</a>
+                </div>
+                <div id="nucleus">
+                    <label>Nucleus</label><br/>
+                    <a href="#" onclick="clicked('hr');"><span class="hr"></span>⬚</a>
+                    <a href="#" onclick="clicked('hf');"><span class="hf"></span>⬚</a>
+                    <a href="#" onclick="clicked('fr');"><span class="fr"></span>⬚</a>
+                    <a href="#" onclick="clicked('ml');"><span class="ml"></span>⬚</a><br/>
+                    <a href="#" onclick="clicked('lr');"><span class="lr"></span>⬚</a>
+                    <a href="#" onclick="clicked('lf');"><span class="lf"></span>⬚</a>
+                    <a href="#" onclick="clicked('rf');"><span class="rf"></span>⬚</a>
+                </div>
+                <div id="separator">
+                    <label>Separator</label><br/>
+                    <a href="#" onclick="clicked('ip');"><span class="ip"></span>⬚</a>
+                    <a href="#" onclick="clicked('fs');"><span class="fs"></span>⬚</a>
+                </div>
+                <a href="./TSMishBriefExplanation.html" style="margin: 0 0 0 auto;" target="_blank">Help</a>
+            </div>
+            <textarea id="entryfield"></textarea>
+        </div>
+
+
+
+<script>
+class GlobalManager {
+    constructor() {
+        this.entryfield = document.getElementById("entryfield");
+        this.controls = document.getElementById("controls");
+        this.conversionTable = {
+            "hp" : "‾",
+            "h1" : "ˈ", "h2" : "°", "h3" : "➘", "l1" : "ˌ", "l2" : "｡", "l3" : "➚", 
+            "hr" : "´", "hf" : "`", "fr" : "ˇ", "ml" : "›", "lr" : "ˏ", "lf" : "ˎ", "rf" : "^",
+            "ip" : "|", "fs" : "‖",
+        };
+    }
+}
+
+const G = new GlobalManager();
+
+window.addEventListener("resize", (evt) => {
+    resize();
+});
+resize();
+
+function resize() {
+    G.entryfield.style = "height: " + (window.innerHeight - G.controls.getBoundingClientRect().height - 20) + "px;";
+}
+
+G.entryfield.addEventListener("blur", (evt) => {
+    G.entryfield.focus();
+});
+G.entryfield.focus();
+
+G.entryfield.addEventListener("keydown", (evt) => {
+
+});
+
+function clicked(str) {
+    let start = G.entryfield.selectionStart;
+    let end = G.entryfield.selectionEnd;
+    let value = G.entryfield.value;
+    G.entryfield.value = value.substring(0, start) + G.conversionTable[str] + value.substring(end);
+    G.entryfield.selectionStart = start + 1;
+    G.entryfield.selectionEnd = start + 1;
+}
+
+</script>
+
+    </body>
+</html>
