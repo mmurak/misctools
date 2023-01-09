@@ -82,7 +82,8 @@
                 </div>
                 <div style="margin: 0 0 0 auto;">
                 <a href="./TSMishBriefExplanation.html" target="_blank">Help</a><br/><br/>
-                <input type="button" value="Copy" onclick="copyData();"><br/><br/>
+                <input type="button" value="Copy" onclick="copyData();"><br/>
+                <input type="button" value="Analyse" onclick="analyseData();"><br/>
                 <input type="button" value="Clear" onclick="clearData();">
                 </div>
             </div>
@@ -102,6 +103,19 @@ class GlobalManager {
             "hr" : "´", "hf" : "`", "fr" : "ˇ", "ml" : "›", "lr" : "ˏ", "lf" : "ˎ", "rf" : "^",
             "ip" : "|", "fs" : "‖",
         };
+        this.patternTable = [
+            ['The Low Drop', '-', '-', 'N', 'N', 'N', 'Y', 'N', 'N', 'N', 'N', 'N', 'N'],
+            ['The High Drop', '-', '-', 'N', 'N', 'N', 'N', 'Y', 'N', 'N', 'N', 'N', 'N'],
+            ['The Take-Off', '-', 'N', '-', 'N', 'N', 'N', 'N', 'Y', 'N', 'N', 'N', 'N'],
+            ['The Low Bounce', '-', 'Y', 'N', 'N', 'N', 'N', 'N', 'Y', 'N', 'N', 'N', 'N'],
+            ['The Low Bounce', 'Y', 'N', 'N', 'N', 'N', 'N', 'N', 'Y', 'N', 'N', 'N', 'N'],
+            ['The Switchback', '-', 'N', 'N', '-', 'N', 'N', 'N', 'N', 'Y', 'N', 'N', 'N'],
+            ['The Long Jump', '-', 'N', 'N', 'N', 'Y', 'N', 'N', 'N', 'N', 'Y', 'N', 'N'],
+            ['The High Bounce', '-', '-', 'N', 'N', 'N', 'N', 'N', 'N', 'N', 'Y', 'N', 'N'],
+            ['The Jackknife', '-', '-', 'N', 'N', 'N', 'N', 'N', 'N', 'N', 'N', 'Y', 'N'],
+            ['The High Dive', '-', '-', 'N', 'N', 'N', 'N', 'Y', 'Y', 'N', 'N', 'N', 'N'],
+            ['The Terrace', '-', '-', 'N', 'N', 'N', 'N', 'N', 'N', 'N', 'N', 'N', 'Y'],
+        ];
     }
 }
 
@@ -142,6 +156,85 @@ function copyData() {
     } else {
         alert("Clipboard function - not supported.");
     }
+}
+
+function analyseData() {
+    let tree = [];
+    let originalText = G.entryfield.value;
+    const pt = originalText.indexOf("==========");
+    if (pt != -1) {
+        originalText = originalText.substring(0, pt);
+    }
+    originalText = originalText.replaceAll(/\n+$/g, "");
+    console.log(originalText);
+    let oneLineText = originalText.replaceAll("\n", " ").replaceAll(/ +/g, " ");
+    let sentenceArray = oneLineText.split("‖");
+    let resultLine = "\n==========\n";
+    for (const sentence of sentenceArray) {
+        if (sentence == "") continue;
+        let pat = [];
+        ipArray = sentence.split("|");
+        for (const ip of ipArray) {
+            pat.push(analysePattern(ip));
+        }
+        tree.push(pat);
+    }
+    let lineNo = 1;
+    for (let sentence of tree) {
+        resultLine += lineNo + ": ";
+        resultLine += sentence.map((x) => { return x[1] }).join(" | ");
+        resultLine += "\n";
+        lineNo++;
+        for (ip of sentence) {
+            resultLine += "        [" + ip[0] + "] : " + ip[1] + "\n";
+        }
+    }
+    console.log("O:" + originalText);
+    console.log("O:" + originalText);
+    G.entryfield.value = originalText + resultLine;
+}
+
+function analysePattern(ip) {
+    let result = [
+        ip.includes(G.conversionTable["hp"]),
+        ip.includes(G.conversionTable["h1"]),
+        ip.includes(G.conversionTable["l1"]),
+        ip.includes(G.conversionTable["h3"]),
+        ip.includes(G.conversionTable["l3"]),
+        ip.includes(G.conversionTable["lf"]),
+        ip.includes(G.conversionTable["hf"]),
+        ip.includes(G.conversionTable["lr"]),
+        ip.includes(G.conversionTable["fr"]),
+        ip.includes(G.conversionTable["hr"]),
+        ip.includes(G.conversionTable["rf"]),
+        ip.includes(G.conversionTable["ml"]),
+    ];
+    let patternName = "";
+    for (let p = 0; p < G.patternTable.length; p++) {
+        let pattern = G.patternTable[p];
+        let matchFlag = true;
+        for(let i = 0; i < pattern.length; i++) {
+            if (pattern[i] == "-") continue;
+            if (pattern[i] == "Y") {
+                if (result[i - 1])  continue;
+                else {
+                    matchFlag = false;
+                    break;
+                }
+            } else {
+                if (result[i - 1]) {
+                    matchFlag = false;
+                    break;
+                } else continue;
+            }
+        }
+        if (matchFlag) {
+            patternName = G.patternTable[p][0];
+            break;
+        }
+    }
+    if (patternName == "")  patternName = "-- Not in O&A --";
+    return [patternName, ip.trim()];
 }
 
 function clearData() {
