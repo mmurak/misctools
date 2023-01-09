@@ -161,15 +161,18 @@ function copyData() {
 function analyseData() {
     let tree = [];
     let originalText = G.entryfield.value;
-    const pt = originalText.indexOf("==========");
-    if (pt != -1) {
-        originalText = originalText.substring(0, pt);
+    if (G.entryfield.selectionStart == G.entryfield.selectionEnd) {
+        const pt = originalText.indexOf("==========");
+        if (pt != -1) {
+            originalText = originalText.substring(0, pt);
+        }
+    } else {
+        originalText = originalText.substring(G.entryfield.selectionStart, G.entryfield.selectionEnd);
     }
     originalText = originalText.replaceAll(/\n+$/g, "");
-    console.log(originalText);
     let oneLineText = originalText.replaceAll("\n", " ").replaceAll(/ +/g, " ");
     let sentenceArray = oneLineText.split("‖");
-    let resultLine = "\n==========\n";
+    let resultLine = "";
     for (const sentence of sentenceArray) {
         if (sentence == "") continue;
         let pat = [];
@@ -189,9 +192,11 @@ function analyseData() {
             resultLine += "        [" + ip[0] + "] : " + ip[1] + "\n";
         }
     }
-    console.log("O:" + originalText);
-    console.log("O:" + originalText);
-    G.entryfield.value = originalText + resultLine;
+    if (G.entryfield.selectionStart == G.entryfield.selectionEnd) {
+        G.entryfield.value = originalText + "\n==========\n" + resultLine;
+    } else {
+        alert(resultLine);
+    }
 }
 
 function analysePattern(ip) {
