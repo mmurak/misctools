@@ -1,0 +1,212 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
+		<title>十干十二支ドリル</title>
+		<link rel="shortcut icon" href="kiwi-bird.png">
+		<style type="text/css">
+.btn{
+	border: 3px solid #1a1a1a;
+	display: inline-block;
+	padding: 10px;
+	position: relative;
+	text-align: center;
+	transition: background 600ms ease, color 600ms ease;
+}
+
+input[type="radio"].toggle {
+	display: none;
+	& + label{
+		cursor: pointer;
+		min-width: 60px;
+		&:hover{
+			background: none;
+			color: #1a1a1a;
+		}
+		&:after{
+			background: #1a1a1a;
+			content: "";
+			height: 100%;
+			position: absolute;
+			top: 0;
+			transition: left 200ms cubic-bezier(0.77, 0, 0.175, 1);
+			width: 100%;
+			z-index: -1;
+		}
+	}
+	&.toggle-left + label {
+		border-right: 0;
+		&:after{
+			left: 100%
+		}
+	}
+	&.toggle-right + label{
+		margin-left: -5px;
+		&:after{
+			left: -100%;
+		}
+	}
+	&:checked + label {
+		cursor: default;
+		color: #fff;
+		transition: color 200ms;
+		&:after{
+			left: 0;
+		}
+	}
+}
+#Start,#Check {
+	font-size: 150%;
+}
+#HSEB1,#HSEB2,#InArea {
+	text-align: center;
+	font-size: 200%;
+}
+@media screen and (max-width: 820px) {
+}
+@media screen and (max-width: 550px) {
+}
+@media screen and (max-width: 400px) {
+	.toggle{
+		font-size: 200%;
+	}
+	#Start,#Check,#HSEB1,#HSEB2,#InArea{
+		font-size: 200%;
+	}
+}
+
+		</style>
+	</head>
+	<body>
+		<table>
+		<tr><td>
+			<input id="toggle-on" class="toggle toggle-left" name="toggle" value="false" type="radio" checked>
+			<label for="toggle-on" class="btn">十干十二支→西暦</label>
+			<input id="toggle-off" class="toggle toggle-right" name="toggle" value="true" type="radio">
+			<label for="toggle-off" class="btn">西暦→十干十二支</label>
+		</td></tr>
+		<tr><td>
+			<button id="Start" onclick="start();">出題</button>
+		</td></tr>
+		<tr><td>
+			<div id="HSEB1">　</div>
+		</td></tr>
+		<tr><td>
+			<div id="HSEB2">　</div>
+		</td></tr>
+		<tr><td>
+			<div>
+				<input type="text" id="InArea"></input>
+			</div>
+		</td></tr>
+		<tr><td>
+			<button id="Check" onclick="check();">確認</button>
+		</td></tr>
+		</table>
+<script type="text/javascript">
+const h2g = document.getElementById("toggle-on");
+const hseb1 = document.getElementById("HSEB1");
+const hseb2 = document.getElementById("HSEB2");
+const inArea = document.getElementById("InArea");
+let heavenlyStems = "甲乙丙丁戊己庚辛壬癸";
+let earthlyBranches = "子丑寅卯辰巳午未申酉戌亥";
+let Quiz = 0;
+function isH2G() {
+	return h2g.checked;
+}
+function clearAreas() {
+	hseb1.innerHTML = "";
+	hseb2.innerHTML = "";
+	inArea.value = "";
+	inArea.style.backgroundColor = "white";
+}
+function getNth(n) {
+	let hs = (n - 1) % heavenlyStems.length;
+	let eb = (n - 1) % earthlyBranches.length;
+	return heavenlyStems[hs] + earthlyBranches[eb];
+}
+function getSeqNo(hseb) {
+	let hs = hseb.substring(0, 1);
+	let eb = hseb.substring(1, 2);
+	let hsidx = heavenlyStems.indexOf(hs) + 1;
+	let ebidx = earthlyBranches.indexOf(eb) + 1;
+	if ((hsidx == 0) || (ebidx == 0)) {
+		return 0;
+	}
+	result = (hsidx - ebidx) / 2;
+	if (result < 0) {
+		result += 6;
+	}
+	result = result * 10 + hsidx;
+	return result;
+}
+function makeH2G() {
+	Quiz = Math.trunc(Math.random() * 60) + 1;
+	let hseb = getNth(Quiz);
+	hseb1.innerHTML = hseb.substring(0, 1);
+	hseb2.innerHTML = hseb.substring(1, 2);
+}
+function fromGregorianYear(yyyy) {
+	return getNth(yyyy - 3);
+}
+function makeG2H() {
+	Quiz = Math.trunc(Math.random() * 2000) + 470;
+	let hseb = fromGregorianYear(Quiz);
+	hseb1.innerHTML = Quiz + "年";
+	hseb2.innerHTML = "";
+}
+function start() {
+	clearAreas();
+	if (isH2G()) {  // h2g
+		makeH2G();
+	} else {	// G2H
+		makeG2H();
+	}
+	inArea.focus();
+}
+function checkH2G() {
+	let num = inArea.value.replace(/[０-９]/g, function(s) {
+        return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+    });
+	if ((Quiz % 60) == ((Number(num) + 57) % 60)) {
+		inArea.style.backgroundColor = "skyblue";
+	} else {
+		inArea.style.backgroundColor = "lightpink";
+	}
+	inArea.focus();
+}
+function checkG2H() {
+	if (fromGregorianYear(Quiz) == inArea.value) {
+		inArea.style.backgroundColor = "skyblue";
+	} else {
+		inArea.style.backgroundColor = "lightpink";
+	}
+}
+function check() {
+	if (Quiz == 0) return;
+	if (isH2G()) {  // h2g
+		checkH2G();
+	} else {	// G2H
+		checkG2H();
+	}
+}
+inArea.addEventListener("keydown", (e) => {
+	switch (e.key) {
+		case "Enter" :
+			check();
+			break;
+		case "Escape" :
+			inArea.value = "";
+			inArea.style.backgroundColor = "white";
+			break;
+		case "ArrowRight" :
+			start();
+			break;
+		default:
+	}
+});
+inArea.focus();
+</script>
+</body>
+</html>
