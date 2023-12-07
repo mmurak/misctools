@@ -87,7 +87,7 @@ input[type="radio"].toggle {
 			<label for="toggle-off" class="btn">西暦→十干十二支</label>
 		</td></tr>
 		<tr><td>
-			<button id="Start" onclick="start();">出題</button>
+			<button id="Start" onclick="start();">出題（→）</button>
 		</td></tr>
 		<tr><td>
 			<div id="HSEB1">　</div>
@@ -101,7 +101,7 @@ input[type="radio"].toggle {
 			</div>
 		</td></tr>
 		<tr><td>
-			<button id="Check" onclick="check();">確認</button>
+			<button id="Check" onclick="check();">確認（Enter）</button>
 		</td></tr>
 		</table>
 <script type="text/javascript">
@@ -109,8 +109,11 @@ const h2g = document.getElementById("toggle-on");
 const hseb1 = document.getElementById("HSEB1");
 const hseb2 = document.getElementById("HSEB2");
 const inArea = document.getElementById("InArea");
-let heavenlyStems = "甲乙丙丁戊己庚辛壬癸";
-let earthlyBranches = "子丑寅卯辰巳午未申酉戌亥";
+const heavenlyStems = "甲乙丙丁戊己庚辛壬癸";
+const earthlyBranches = "子丑寅卯辰巳午未申酉戌亥";
+const kanaHS = ["きのえ:甲", "きのと:乙", "ひのえ:丙", "ひのと:丁", "つちのえ:戊", "つちのと:己", "かのえ:庚", "かのと:辛", "みずのえ:壬", "みずのと:癸"];
+const kanaEB = ["ひつじ:未", "うし:丑", "とら:寅", "たつ:辰", "うま:午", "さる:申", "とり:酉", "いぬ:戌", "ね:子", "う:卯", "み:巳", "い:亥"];
+
 let Quiz = 0;
 function isH2G() {
 	return h2g.checked;
@@ -177,7 +180,8 @@ function checkH2G() {
 	inArea.focus();
 }
 function checkG2H() {
-	if (fromGregorianYear(Quiz) == inArea.value) {
+	let regularise = convertKana(inArea.value);
+	if (fromGregorianYear(Quiz) == regularise) {
 		inArea.style.backgroundColor = "skyblue";
 	} else {
 		inArea.style.backgroundColor = "lightpink";
@@ -190,6 +194,17 @@ function check() {
 	} else {	// G2H
 		checkG2H();
 	}
+}
+function convertKana(val) {
+	for (pair of kanaHS) {
+		let p = pair.split(/:/);
+		val = val.replace(p[0], p[1]);
+	}
+	for (pair of kanaEB) {
+		let p = pair.split(/:/);
+		val = val.replace(p[0], p[1]);
+	}
+	return val;
 }
 inArea.addEventListener("keydown", (e) => {
 	switch (e.key) {
