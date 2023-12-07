@@ -79,6 +79,7 @@ input[type="radio"].toggle {
 		</style>
 	</head>
 	<body>
+		<h2>十干十二支マスタードリル</h2>
 		<table>
 		<tr><td>
 			<input id="toggle-on" class="toggle toggle-left" name="toggle" value="false" type="radio" checked>
@@ -104,6 +105,9 @@ input[type="radio"].toggle {
 			<button id="Check" onclick="check();">確認（Enter）</button>
 		</td></tr>
 		</table>
+		<p>※ 旧暦（太陽太陰暦）と西暦（太陽暦）では年の切れ目が一致しない点に注意。<br/>
+		（このため例えば、天保2年1月1日〜12月30日の文献はすべて辛卯の年として表記されるが、この期間はグレゴリオ暦では1831年2月13日〜1832年2月1日と年をまたいでいる。つまり辛卯の年だからといって、無条件に「1831年の出来事だ」と判断することはできない。）
+		</p>
 <script type="text/javascript">
 const h2g = document.getElementById("toggle-on");
 const hseb1 = document.getElementById("HSEB1");
