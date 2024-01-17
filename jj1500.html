@@ -1,0 +1,228 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
+		<title>元号計算ドリル</title>
+		<link rel="shortcut icon" href="kiwi-bird.png">
+		<style type="text/css">
+#HSEB1{
+  flex: 1;
+  background-color: #fff;
+  text-align: center;
+  margin-left: 5px;
+  font-size: 2em;
+  -webkit-writing-mode: vertical-rl;
+      -ms-writing-mode: tb-rl;
+          writing-mode: vertical-rl;
+}
+.btn{
+	border: 3px solid #1a1a1a;
+	display: inline-block;
+	padding: 10px;
+	position: relative;
+	text-align: center;
+	transition: background 600ms ease, color 600ms ease;
+}
+
+#Start,#Check {
+	font-size: 150%;
+}
+#HSEB1,#InArea {
+	text-align: center;
+	font-size: 200%;
+}
+@media screen and (max-width: 820px) {
+}
+@media screen and (max-width: 550px) {
+}
+@media screen and (max-width: 400px) {
+	#Start,#Check,#HSEB1,#InArea{
+		font-size: 200%;
+	}
+}
+
+		</style>
+	</head>
+	<body>
+		<h2>元号計算ドリル</h2>
+		<table>
+		<tr><td>
+			<button id="Start" onclick="start();">出題（→）</button>
+		</td></tr>
+		<tr><td align="center">
+			<div id="HSEB1">　</div>
+		</td></tr>
+		<tr><td>
+			<div>
+				<input type="text" id="InArea"></input>
+			</div>
+		</td></tr>
+		<tr><td>
+			<button id="Check" onclick="check();">確認（Enter）</button>
+		</td></tr>
+		</table>
+		<p>※ 旧暦（太陽太陰暦）と西暦（太陽暦）では年の切れ目が一致しない点に注意。<br/>
+		（このため例えば、天保2年1月1日〜12月30日の文献はすべて辛卯の年として表記されるが、この期間はグレゴリオ暦では1831年2月13日〜1832年2月1日と年をまたいでいる。つまり辛卯の年だからといって、無条件に「1831年の出来事だ」と判断することはできない。）
+		</p>
+<script type="text/javascript">
+class GlobalManager {
+	constructor() {
+		this.hseb1 = document.getElementById("HSEB1");
+		this.inArea = document.getElementById("InArea");
+		this.heavenlyStems = "甲乙丙丁戊己庚辛壬癸";
+		this.earthlyBranches = "子丑寅卯辰巳午未申酉戌亥";
+		this.problem = ["", 0];
+		this.gArray = [
+			"明応/1492",
+			"文亀/1501",
+			"永正/1504",
+			"大永/1521",
+			"享禄/1528",
+			"天文/1532",
+			"弘治/1555",
+			"永禄/1558",
+			"元亀/1570",
+			"天正/1573",
+			"文禄/1592",		//
+			"慶長/1596",
+			"元和/1615",
+			"寛永/1624",
+			"正保/1644",		//
+			"慶安/1648",
+			"承応/1652",
+			"明暦/1655",
+			"万治/1658",
+			"寛文/1661",
+			"延宝/1673",
+			"天和/1681",
+			"貞享/1684",
+			"元禄/1688",
+			"宝永/1704",
+			"正徳/1711",
+			"享保/1716",
+			"元文/1736",
+			"寛保/1741",
+			"延享/1744",
+			"寛延/1748",
+			"宝暦/1751",
+			"明和/1764",
+			"安永/1772",
+			"天明/1781",
+			"寛政/1789",
+			"享和/1801",
+			"文化/1804",
+			"文政/1818",
+			"天保/1830",		//
+			"弘化/1844",		//
+			"嘉永/1848",
+			"安政/1854",		//
+			"万延/1860",
+			"文久/1861",
+			"元治/1864",
+			"慶応/1865",
+			"明治/1868",
+			"大正/1912",
+			"昭和/1926",
+			"平成/1989",
+			"令和/2019",
+		];
+		this.gArray.push("/" + (Number(this.gArray[this.gArray.length-1].split("/")[1])+99));
+		this.ts = [
+			[""],
+			["十", "拾"],
+			["二拾", "二十", "弐拾", "弐拾", "廿"],
+			["三拾", "三十", "参拾", "参拾", "丗", "卅"],
+			["四拾", "四十", "卌"],
+			["五十", "五拾"],
+			["六十", "六拾"],
+			["七十", "七拾"],
+			["八十", "八拾"],
+			["九十", "九拾"],
+		];
+		this.os = [
+			[""],
+			["壱", "一"],
+			["二", "弐"],
+			["三", "参"],
+			["四"],
+			["五"],
+			["六"],
+			["七"],
+			["八"],
+			["九"],
+		];
+	}
+}
+
+function makeAQuestion() {
+	const gIdx = Math.trunc(Math.random() * (G.gArray.length - 1));
+	const fromEntry = G.gArray[gIdx].split("/");
+	const toEntry = G.gArray[gIdx+1].split("/");
+	const st = Number(fromEntry[1]);
+	const ed = Number(toEntry[1]);
+	const dur = Math.trunc(Math.random() * (ed - st + 1));
+	const nen = displayNumber(dur + 1);
+	const jj = fromGregorianYear(st + dur);
+	return [fromEntry[0] + nen + jj + "年", (st + dur)];
+}
+
+function displayNumber(num) {
+	const t = Math.trunc(num / 10);
+	const o = num % 10;
+	let result = G.ts[t][Math.trunc(Math.random() * G.ts[t].length)] +
+		G.os[o][Math.trunc(Math.random() * G.os[o].length)];
+	if ((result == "一") || (result == "壱")) {
+		result = "元";
+	}
+	return result;
+}
+
+function clearAreas() {
+	G.hseb1.innerHTML = "";
+	G.inArea.value = "";
+	G.inArea.style.backgroundColor = "white";
+}
+function getNth(n) {
+	let hs = (n - 1) % G.heavenlyStems.length;
+	let eb = (n - 1) % G.earthlyBranches.length;
+	return G.heavenlyStems[hs] + G.earthlyBranches[eb];
+}
+function fromGregorianYear(yyyy) {
+	return getNth(yyyy - 3);
+}
+function start() {
+	clearAreas();
+	G.problem = makeAQuestion();
+	G.hseb1.innerHTML = G.problem[0];
+	G.inArea.focus();
+}
+function check() {
+	if (G.inArea.value == G.problem[1]) {
+		G.inArea.style.backgroundColor = "skyblue";
+	} else {
+		G.inArea.style.backgroundColor = "lightpink";
+	}
+}
+
+const G = new GlobalManager();
+
+G.inArea.addEventListener("keydown", (e) => {
+	switch (e.key) {
+		case "Enter" :
+			check();
+			break;
+		case "Escape" :
+			G.inArea.value = "";
+			G.inArea.style.backgroundColor = "white";
+			break;
+		case "ArrowRight" :
+			start();
+			break;
+		default:
+	}
+});
+G.inArea.focus();
+</script>
+</body>
+</html>
