@@ -31,11 +31,24 @@
 #HSEB1 {
 	text-align: center;
 	font-size: 200%;
+	font-family: 'KouzanMouhituFontOTF';
 }
 #InArea {
 	text-align: center;
 	font-size: 200%;
 	width: 100%;
+}
+.srfont{
+	font-size: 60%;
+	vertical-align: top;
+}
+.slfont{
+	font-size: 60%;
+	vertical-align: bottom;
+}
+@font-face{
+	font-family: 'KouzanMouhituFontOTF';
+	src:  url('./fonts/KouzanMouhituFontOTF.otf') format('opentype');
 }
 @media screen and (max-width: 820px) {
 }
@@ -191,7 +204,7 @@ function clearAreas() {
 function getNth(n) {
 	let hs = (n - 1) % G.heavenlyStems.length;
 	let eb = (n - 1) % G.earthlyBranches.length;
-	return G.heavenlyStems[hs] + G.earthlyBranches[eb];
+	return "<span class=\"srfont\">" + G.heavenlyStems[hs] + "</span><span class=\"slfont\">" + G.earthlyBranches[eb] + "</span>";
 }
 function fromGregorianYear(yyyy) {
 	return getNth(yyyy - 3);
