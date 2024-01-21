@@ -64,6 +64,10 @@
 	</head>
 	<body>
 		<h2>元号計算ドリル</h2>
+		<lalbel for="FromSelector">出題範囲</label>
+		<select id="FromSelector"></select>〜
+		<select id="ToSelector"></select>
+		<br/>
 		<button id="Start" onclick="start();">出題（→）</button>
 		<br/>
 		<div id="HSEB1" style="margin:auto;">　</div>
@@ -79,6 +83,8 @@
 <script type="text/javascript">
 class GlobalManager {
 	constructor() {
+		this.fromSelector = document.getElementById("FromSelector");
+		this.toSelector = document.getElementById("ToSelector");
 		this.hseb1 = document.getElementById("HSEB1");
 		this.inArea = document.getElementById("InArea");
 		this.heavenlyStems = "甲乙丙丁戊己庚辛壬癸";
@@ -163,11 +169,23 @@ class GlobalManager {
 			["八"],
 			["九"],
 		];
+		this.gStartIndex = 0;
+		this.gEndIndex = 0;
 	}
 }
 
+
+function rangeRandomizer() {
+	let startIndex = G.fromSelector.selectedIndex;
+	if (startIndex < 0) startIndex = 0;
+	let range = G.toSelector.selectedIndex + 1;
+	if (range < 0) range = 0;
+	return Math.trunc(Math.random() * range) + startIndex;
+}
+
 function makeAQuestion() {
-	const gIdx = Math.trunc(Math.random() * (G.gArray.length - 1));
+//	const gIdx = Math.trunc(Math.random() * (G.gArray.length - 1));
+	const gIdx = rangeRandomizer();
 	const fromEntry = G.gArray[gIdx].split("/");
 	const toEntry = G.gArray[gIdx+1].split("/");
 	const st = Number(fromEntry[1]);
@@ -217,6 +235,30 @@ function check() {
 }
 
 const G = new GlobalManager();
+
+for (let i = 0; i < G.gArray.length - 1; i++) {
+	let item = document.createElement("option");
+	item.text = G.gArray[i];
+	G.fromSelector.appendChild(item);
+}
+loadToSelector(0);
+G.toSelector.selectedIndex = G.gArray.length - 2;
+
+function loadToSelector(fromPoint) {
+	while (G.toSelector.firstChild) {
+		G.toSelector.removeChild(G.toSelector.lastChild);
+	}
+	for (let i = fromPoint; i < G.gArray.length - 1; i++) {
+		let item = document.createElement("option");
+		item.text = G.gArray[i];
+		G.toSelector.appendChild(item);
+	}
+}
+
+G.fromSelector.addEventListener("change", (e) => {
+	G.gStartIndex = G.fromSelector.selectedIndex;
+	loadToSelector(G.gStartIndex);
+});
 
 G.inArea.addEventListener("keydown", (e) => {
 	switch (e.key) {
