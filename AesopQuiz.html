@@ -1,0 +1,248 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+	<head>
+		<title>Aesop Quiz</title>
+		<link rel="shortcut icon" href="kiwi-bird.png">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
+		<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
+		<style>
+#hSection {
+	position: fixed;
+	width: 97%;
+	margin: 0;
+	padding: 10px 10px 10px 10px;
+	top: 0;
+	left: 0;
+	background-color: white;
+	z-index: 3;
+}
+#playfield {
+	position: absolute;
+	top: 5em;
+	z-index: 1;
+}
+a{
+	color: #0000cc;
+}
+a:visited{
+	color: #0000cc;
+}
+@media screen and (max-width: 1023px) {
+	#body {
+		font-size: 20px;
+	}
+	.btn {
+		font-size:20px;
+	}
+	.acol {
+		font-size: 20px;
+	}
+}
+@media screen and (max-width: 378px) {
+	#body {
+		font-size: 30px;
+	}
+	.btn {
+		font-size:30px;
+	}
+	.acol {
+		font-size: 30px;
+	}
+}
+		</style>
+	</head>
+	<body>
+		<div id="hSection">
+			<div style="display:flex;justify-content:space-between;">
+				<input type="button" id="gachaBtn" class="btn" value="START!" onclick="selectStory();"></input>
+				<span style="font-size: 14px;">Powered by the <a href="https://www.gutenberg.org/ebooks/49010">content<a> of <a href="https://www.gutenberg.org/">Project Gutenberg</a>.</span>
+			</div>
+			<span id="selections"></span>
+		</div>
+		<div id="playfield"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script src="./RandomCongrats.js"></script>
+<script src="./AEsopStory.js"></script>
+
+<script>
+WORDLIST = [
+    "a",
+    "an",
+    "at",
+    "by",
+    "for",
+    "in",
+    "of",
+    "on",
+    "the",
+    "to",
+    "with",
+];
+
+class GlobalManager {
+    constructor() {
+        this.gachaBtn = document.getElementById("gachaBtn");
+        this.selections = document.getElementById("selections");
+        this.body = document.getElementById("body");
+        this.playfield = document.getElementById("playfield");
+        this.delimOpen = "\\(\\(";
+        this.delimClose = "\\)\\)";
+        this.regexp = new RegExp("^(.*?)(" + this.delimOpen + ")(.+?)(" + this.delimClose + ")(.*)$", "ms");
+        this.yaRegexp = /^(\s*)(\S+)(.*)$/ms;
+        this.seq = 0;
+        this.downNo = 0;
+        this.wordlist = WORDLIST.map((w) => {
+            return new RegExp("([\\s'\\\"])(" + w + ")([\\s,\\.:;'\\\"])", "ig");
+        });
+        this.randomCongrats = new RandomCongrats();
+        this.lastSelected = null;
+        this.emSize = 5;
+    }
+}
+
+
+const G = new GlobalManager();
+
+function selectStory() {
+	let size = dataPool.length;
+	let storyIdx = Math.trunc(Math.random() * size);
+	let tuple = dataPool[storyIdx].split("::");
+    while(G.playfield.firstChild) {
+        G.playfield.removeChild(G.playfield.lastChild);
+    }
+	let header = document.createElement("h4");
+	header.innerHTML = tuple[0];
+	G.playfield.appendChild(header);
+	let story = tuple[1].replaceAll("\n\n", "<br><br>");
+	story = story.replaceAll("\n", " ");
+	prepareData(story);
+	G.gachaBtn.value = "NEXT!";
+}
+
+let sels1 = "";
+for (let s of WORDLIST) {
+    sels1 += "<a href='#' onclick='clicked(\"" + s + "\");'>" + s + "</a> ";
+}
+sels1 += "　<a href='#' onclick='clicked(\"???\");'>???</a> ";
+G.selections.innerHTML = sels1;
+
+function clicked(w) {
+    if (G.lastSelected == null)  return;
+    G.lastSelected.value = w;
+    let itemNo = Number(G.lastSelected.id.substring(1));
+    G.lastSelected.focus();
+    G.lastSelected.blur();
+    itemNo += 1;
+    while(itemNo <= G.seq) {
+        let e = document.getElementById("t" + itemNo);
+        if (e.style.display != "none")  break;
+        itemNo += 1;
+    }
+    if (itemNo <= G.seq) {
+        document.getElementById("t" + itemNo).focus();
+    }
+}
+
+function register(obj) {
+    G.lastSelected = obj;
+}
+
+function prepareData(dat) {
+    let lines = dat.split("\n");
+    let newLines = lines.map((val) => {
+        return " " + val + " ";
+    });
+    lines = newLines.join("\n");
+    for (let w of G.wordlist) {
+        lines = lines.replace(w, "$1\(\($2\)\)$3")
+    }
+    process(lines);
+    document.getElementById("t1").focus();
+}
+
+function process(data) {
+    G.seq = 0;
+    G.downNo = 0;
+    let result = "";
+    while (true) {
+        let workChunk = data.match(G.regexp);
+        if (workChunk == null) {
+            break;
+        }
+        result += workChunk[1];
+        result += convertItems(workChunk[3]);
+        data = workChunk[5];
+    }
+    result += data;
+    result = result.replaceAll("\n", "<br/>");
+    let sentence = document.createElement("p");
+    sentence.innerHTML = result;
+    G.playfield.appendChild(sentence);
+}
+
+function convertItems(parm) {
+    let result = "";
+    while (true) {
+        let tmatch = parm.match(G.yaRegexp);
+        if (tmatch == null) {
+            break;
+        }
+        result += tmatch[1];
+        G.seq += 1;
+        let quoteEscape = tmatch[2].replaceAll("'", "\\'");
+        quoteEscape = quoteEscape.replaceAll(/&nbsp;/ig, " ");
+        let chkf = "onBlur=\"festival('" + quoteEscape + "', " + G.seq + ");\"";
+        result += '<input type="text" id="t' + G.seq + '" class="acol" autocomplete="off" size="4" value="" onFocus="register(this);this.select();"  onInput="inputChar(' + G.seq + ');" ' + chkf + '>';
+        result += '<span id="s' + G.seq + '" style="display:none">';
+        result += '</span>';
+        parm = tmatch[3];
+    }
+    result += parm;
+    return result;
+}
+
+function festival(correctWord, no) {
+    let inp = document.getElementById("t" + no);
+    let i = inp.value.trim();
+    let realCorrect = multipleChk(i, correctWord);
+    if (realCorrect != null) {
+        inp.style = "display: none";
+        let spantext = document.getElementById("s" + no);
+        spantext.appendChild(document.createTextNode(realCorrect));
+        spantext.style = "visibility: visible;";
+        spantext.style = "font-weight: bold;";
+        spantext.style.color = "green";
+        G.downNo += 1;
+        if (G.downNo >= G.seq) {
+            G.gachaBtn.focus();
+            G.randomCongrats.do(0);
+        }
+    } else if (inp.value == "???") {
+        inp.style = "display: none;";
+        let spantext = document.getElementById("s" + no);
+        correctWord = correctWord.replaceAll(/\|\|/g, "または");
+        spantext.appendChild(document.createTextNode(correctWord));
+        document.getElementById("s" + no).style = "visibility: visible;color: red;";
+    }
+}
+
+function inputChar(currentId) {
+    let elem = document.getElementById("t" + currentId);
+    let val = elem.value;
+    if (val == "") return;
+    elem.size = Math.max(val.length, 1);
+}
+
+function multipleChk(inp, correctWord) {
+    let alist = correctWord.split(/\|\|/);
+    for (i = 0; i < alist.length; i++) {
+        if (inp == alist[i].toLowerCase()) {
+            return alist[i];
+        }
+    }
+    return null;
+}
+</script>
+	</body>
+</html>
