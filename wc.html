@@ -1,0 +1,30 @@
+<textarea cols="80" rows="30" id="area">
+</textarea>
+<br>
+<button onclick="clearText();">CLEAR（Esc）</button>
+<button onclick="clicked();">PUSH ME（Shift+Enter）</button>
+<br>
+<span id="OutputArea">0</span> chracters
+<script>
+
+function clicked() {
+	document.getElementById("OutputArea").innerHTML = document.getElementById("area").value.length;
+	document.getElementById("area").focus();
+}
+
+function clearText() {
+	document.getElementById("area").value = "";
+	clicked();
+	document.getElementById("area").focus();
+}
+document.getElementById("area").focus();
+
+
+document.addEventListener("keydown", (e) => {
+	if (e.key == "Escape") clearText();
+	if (e.key == "Enter" && (e.metaKey||e.ctrlKey)) {
+		clicked();
+		e.preventDefault();
+	}
+});
+</script>
