@@ -1,0 +1,299 @@
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<style>
+table{
+	table-layout: fixed;
+	width: 100%;
+}
+table td{
+	overflow-wrap:break-word;
+	width:20%;
+}
+body {
+	margin: 0;
+	font-family: sans-serif;
+}
+
+.fixed-header {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	background-color: #ccc;
+	padding: 10px 20px;
+	z-index: 1000;
+	box-sizing: border-box;
+}
+.content {
+	margin-top: 80px;
+	padding: 20px;
+}
+dialog {
+	border: 1px solid #ccc;
+	border-radius: 8px;
+	padding: 20px;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+	font-family: sans-serif;
+	text-align: center;
+}
+
+dialog::backdrop {
+	background-color: rgba(0, 0, 0, 0.5);
+}
+
+dialog button {
+	margin-top: 15px;
+	padding: 8px 15px;
+	border: none;
+	border-radius: 5px;
+	background-color: #007bff;
+	color: white;
+	cursor: pointer;
+}
+
+dialog button:hover {
+	background-color: #0056b3;
+}
+
+</style>
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet" />
+	</head>
+	<body>
+		<header class="fixed-header">
+			<div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+				<div>
+					<input type="file" id="InputFile" accept=".htm,.html"//>
+					<button id="SaveButton">Save</button>
+				</div>
+				<div>
+					<div id="CBarea">
+					</div>
+					<input type="textfield" id="SearchField" placeholder="Shift+Enterで検索" size="20"></input>
+				</div>
+			</div>
+		</header>
+		<main class="content">
+			<div id="DivView"></div>
+		</main>
+
+		<dialog id="DialogueBox">
+			<div id="DialogueContent"></div>
+			<button id="CloseDialogButton">閉じる</button>
+		</dialog>
+
+		<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+
+		<script>
+
+class GlobalManager {
+	constructor() {
+		this.foreColourPalette = { 'color': [ "#ff0000", "#ff8c00", "#008000", "#0000cd", "#000000", ], };
+		this.backColourPalette = { 'background': [ "#ffff00", "#7fffd4", "#ffe4e1", "#ffffff", ], };
+		this.inputFile = document.getElementById("InputFile");
+		this.divView = document.getElementById("DivView");
+		this.saveButton = document.getElementById("SaveButton");
+		this.saveButton.addEventListener("click", (evt) => { outputToFile(); });
+		this.dialogueBox = document.getElementById("DialogueBox");
+
+		this.searchField = document.getElementById("SearchField");
+		this.searchField.addEventListener("keyup", (evt) => {
+			if ((evt.key == "Enter") && (evt.shiftKey)) {
+				searchPhrase();
+			} else if ((evt.key == "ArrowDown") && (evt.shiftKey)) {
+				this.resultPointer++;
+				if (this.resultPointer >= this.resultArray.length) {
+					this.resultPointer = 0;
+				}
+				scrollTo(0, this.resultArray[this.resultPointer][1]);
+			} else if ((evt.key == "ArrowUp") && (evt.shiftKey)) {
+				this.resultPointer--;
+				if (this.resultPointer < 0) {
+					this.resultPointer = this.resultArray.length - 1;
+				}
+				scrollTo(0, this.resultArray[this.resultPointer][1]);
+			}
+		});
+		this.cbArea = document.getElementById("CBarea");
+
+		this.dialogueContent = document.getElementById("DialogueContent");
+		this.closeDialogButton = document.getElementById("CloseDialogButton");
+		this.closeDialogButton.addEventListener('click', (event) => {
+			this.dialogueBox.close();
+			const editorElement = document.getElementsByClassName("ql-editor")[0];
+			let savedData = editorElement.innerHTML;
+			savedData = savedData.replaceAll("</p><p>", "<br>");
+			savedData = savedData.replaceAll(/(<p>|<\/p>)/g, "");
+			savedData = savedData.replaceAll("<br><br><br>", "<br><br>");
+			document.getElementById(this.currentId).innerHTML = savedData;
+			this.dialogueContent.innerHTML = "";
+			console.log(G.divView);
+		});
+		this.dialogueBox.addEventListener('cancel', (event) => {
+			this.dialogueBox.close();
+			this.dialogueContent.innerHTML = "";
+		});
+		this.filename = "";
+		this.content = "";
+		this.currentId = "";
+		this.numberOfColumns = 0;
+		this.resultArray = [];
+		this.resultPointer = 0;
+
+		this.htmlPreamble = '<html><head><meta charset="UTF-8">\n<style>table{table-layout: fixed;width: 100%;}table td{overflow-wrap:break-word;width:20%;}</style>\n</head>\n<table border="1" id="myTable">';
+		this.htmlPostamble = '</table>\n</body>\n</html>\n';
+	}
+}
+const G = new GlobalManager();
+
+G.inputFile.addEventListener("change", (evt) => {
+	const file = evt.target.files[0];
+	if (file == null)  return;
+	G.filename = file['name'];
+	G.divView.innerHTML = "";
+
+	let reader = new FileReader();
+	reader.onload = function(evt) {
+		let html = event.target.result;
+		const m = html.match(/<table[^>]*>(.+?)<\/table>/ms);
+		if (m == null) {
+			alert("No <table> elements in this file.");
+			return;
+		}
+		const dataArray = extractTextFromTableData(m[1]);
+
+		// generate checkboxes
+		G.cbArea.innerHTML = "";
+		G.numberOfColumns = dataArray[1].length; 
+		for (let cno = 0; cno < G.numberOfColumns; cno++) {
+			const checkbox = document.createElement("input");
+			checkbox.type = "checkbox";
+			checkbox.id = "c" + cno;
+			G.cbArea.appendChild(checkbox);
+		}
+
+		G.tableTag = document.createElement('table');
+		G.tableTag.border = 1;
+
+		makeTableFromTextArray(G.tableTag, dataArray);
+		G.divView.appendChild(G.tableTag);
+
+		G.tableTag.addEventListener("dblclick", (evt) => {
+			G.content = document.createElement("div");
+			G.content.id = "Editor";
+			let currentTag = evt.target;
+			while(currentTag.id == "")  currentTag = currentTag.parentElement;
+			G.currentId = currentTag.id;
+			G.content.innerHTML = document.getElementById(G.currentId).innerHTML;
+			G.dialogueContent.appendChild(G.content);
+
+			const quill = new Quill('#editor', {
+				modules: {
+					toolbar: [
+						[
+							G.foreColourPalette,
+							G.backColourPalette,
+						],
+					],
+				},
+				placeholder: 'Compose an epic...',
+				theme: 'snow', // or 'bubble'
+			});
+
+			G.dialogueBox.showModal();
+		});
+
+	}
+	reader.readAsText(file);
+});
+
+
+
+function extractTextFromTableData(html) {
+	const virtualTable = document.createElement('table');
+	virtualTable.innerHTML = html;
+	let resultArray = [];
+	const trElements = virtualTable.querySelectorAll('tr');
+	for (let tr of trElements) {
+		const tdElements = tr.querySelectorAll('td');
+		tdArray = Array.from(tdElements).map(td => td.innerHTML);
+		resultArray.push(tdArray);
+	}
+	return resultArray;
+}
+
+function makeTableFromTextArray(tableTag, textArray) {
+	let dno = 1;
+	for (const line of textArray) {
+		const lineTag = document.createElement('tr');
+		for (const item of line) {
+			const dataTag = document.createElement('td');
+			dataTag.innerHTML = item;
+			dataTag.id = 'd' + dno;
+			dno++;
+			lineTag.appendChild(dataTag);
+		}
+		tableTag.appendChild(lineTag);
+	}
+	return tableTag;
+}
+
+function searchPhrase() {
+	let targetArray = [];
+	for (let i = 0; i < G.numberOfColumns; i++) {
+		targetArray.push(document.getElementById("c"+ i).checked);
+	}
+
+	let searchTerm = G.searchField.value;
+	if (searchTerm == "")  searchTerm = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+	const rows = G.tableTag.rows;
+	G.resultArray = [];
+	let foundFlag = false
+	let heightOffset = 0;
+	let hitColour = "pink";
+	for (let i = 0; i < rows.length; i++) {
+		for (let j = 0; j < rows[i].cells.length; j++) {
+			if (targetArray[j]) {
+				const cellText = rows[i].cells[j].textContent;
+				if (cellText.includes(searchTerm)) {
+					rows[i].cells[j].style.backgroundColor = hitColour;
+					hitColour = "mistyrose";
+					G.resultArray.push([rows[i].cells[0].textContent, heightOffset]);
+					if (!foundFlag) {
+						scrollTo(0, heightOffset);
+						foundFlag = true;
+					}
+				} else {
+					rows[i].cells[j].style.backgroundColor = "white";
+				}
+			} else {
+				rows[i].cells[j].style.backgroundColor = "white";
+			}
+		}
+		heightOffset += rows[i].offsetHeight + 2;
+	}
+	alert(G.resultArray.length + "件見つかりました。\n" + G.resultArray.map(ia => ia[0]).join("\n"));
+	G.resultPointer = (G.resultArray.length == 0) ? -1 : 0;
+}
+
+function outputToFile() {
+	let contents = "";
+	let rawContents = G.tableTag.innerHTML;
+	contents += G.htmlPreamble + "\n" + rawContents.replaceAll('</tr>', '</tr>\n') + G.htmlPostamble;
+
+	let bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+	let blob = new Blob([ bom, contents ], { "type" : "text/html" });
+	let anchor = document.createElement("a");
+	const url = URL.createObjectURL(blob);
+	anchor.href = url;
+	anchor.download = G.filename;
+	document.body.appendChild(anchor);
+	anchor.click();
+	document.body.removeChild(anchor);
+	URL.revokeObjectURL(url);
+	anchor = null;
+}
+		</script>
+	</body>
+</html>
