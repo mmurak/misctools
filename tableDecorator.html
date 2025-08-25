@@ -97,42 +97,10 @@ class GlobalManager {
 		this.dialogueBox = document.getElementById("DialogueBox");
 
 		this.searchField = document.getElementById("SearchField");
-		this.searchField.addEventListener("keyup", (evt) => {
-			if ((evt.key == "Enter") && (evt.shiftKey)) {
-				searchPhrase();
-			} else if ((evt.key == "ArrowDown") && (evt.shiftKey)) {
-				this.resultPointer++;
-				if (this.resultPointer >= this.resultArray.length) {
-					this.resultPointer = 0;
-				}
-				scrollTo(0, this.resultArray[this.resultPointer][1]);
-			} else if ((evt.key == "ArrowUp") && (evt.shiftKey)) {
-				this.resultPointer--;
-				if (this.resultPointer < 0) {
-					this.resultPointer = this.resultArray.length - 1;
-				}
-				scrollTo(0, this.resultArray[this.resultPointer][1]);
-			}
-		});
 		this.cbArea = document.getElementById("CBarea");
 
 		this.dialogueContent = document.getElementById("DialogueContent");
 		this.closeDialogButton = document.getElementById("CloseDialogButton");
-		this.closeDialogButton.addEventListener('click', (event) => {
-			this.dialogueBox.close();
-			const editorElement = document.getElementsByClassName("ql-editor")[0];
-			let savedData = editorElement.innerHTML;
-			savedData = savedData.replaceAll("</p><p>", "<br>");
-			savedData = savedData.replaceAll(/(<p>|<\/p>)/g, "");
-			savedData = savedData.replaceAll("<br><br><br>", "<br><br>");
-			document.getElementById(this.currentId).innerHTML = savedData;
-			this.dialogueContent.innerHTML = "";
-			console.log(G.divView);
-		});
-		this.dialogueBox.addEventListener('cancel', (event) => {
-			this.dialogueBox.close();
-			this.dialogueContent.innerHTML = "";
-		});
 		this.filename = "";
 		this.content = "";
 		this.currentId = "";
@@ -146,6 +114,53 @@ class GlobalManager {
 }
 const G = new GlobalManager();
 
+document.addEventListener("keydown", (evt) => {
+	if (evt.key == "Escape") {
+		if (document.activeElement == G.searchField) {
+			G.searchField.value = "";
+		}
+		G.searchField.focus();
+	}
+});
+
+// 検索時のショートカットキー動作
+G.searchField.addEventListener("keyup", (evt) => {
+	if ((evt.key == "Enter") && (evt.shiftKey)) {
+		searchPhrase();
+	} else if ((evt.key == "ArrowDown") && (evt.shiftKey)) {
+		G.resultPointer++;
+		if (G.resultPointer >= G.resultArray.length) {
+			G.resultPointer = 0;
+		}
+		scrollTo(0, G.resultArray[G.resultPointer][1]);
+	} else if ((evt.key == "ArrowUp") && (evt.shiftKey)) {
+		G.resultPointer--;
+		if (G.resultPointer < 0) {
+			G.resultPointer = G.resultArray.length - 1;
+		}
+		scrollTo(0, G.resultArray[G.resultPointer][1]);
+	}
+});
+
+// ダイアログボックス Close
+G.closeDialogButton.addEventListener('click', (event) => {
+	G.dialogueBox.close();
+	const editorElement = document.getElementsByClassName("ql-editor")[0];
+	let savedData = editorElement.innerHTML;
+	savedData = savedData.replaceAll("</p><p>", "<br>");
+	savedData = savedData.replaceAll(/(<p>|<\/p>)/g, "");
+	savedData = savedData.replaceAll("<br><br><br>", "<br><br>");
+	document.getElementById(G.currentId).innerHTML = savedData;
+	G.dialogueContent.innerHTML = "";
+});
+
+// ダイアログボックス Cancel
+G.dialogueBox.addEventListener('cancel', (event) => {
+	G.dialogueBox.close();
+	G.dialogueContent.innerHTML = "";
+});
+
+// ファイルのオープン
 G.inputFile.addEventListener("change", (evt) => {
 	const file = evt.target.files[0];
 	if (file == null)  return;
@@ -186,7 +201,6 @@ G.inputFile.addEventListener("change", (evt) => {
 			G.currentId = currentTag.id;
 			G.content.innerHTML = document.getElementById(G.currentId).innerHTML;
 			G.dialogueContent.appendChild(G.content);
-
 			const quill = new Quill('#editor', {
 				modules: {
 					toolbar: [
@@ -208,7 +222,7 @@ G.inputFile.addEventListener("change", (evt) => {
 });
 
 
-
+// HTMLテーブルからテキスト配列を生成する
 function extractTextFromTableData(html) {
 	const virtualTable = document.createElement('table');
 	virtualTable.innerHTML = html;
@@ -222,6 +236,7 @@ function extractTextFromTableData(html) {
 	return resultArray;
 }
 
+// テキスト配列からテーブル要素を作成する（d+nnタグを付加）
 function makeTableFromTextArray(tableTag, textArray) {
 	let dno = 1;
 	for (const line of textArray) {
@@ -238,6 +253,7 @@ function makeTableFromTextArray(tableTag, textArray) {
 	return tableTag;
 }
 
+// フレーズを検索する
 function searchPhrase() {
 	let targetArray = [];
 	for (let i = 0; i < G.numberOfColumns; i++) {
@@ -277,6 +293,7 @@ function searchPhrase() {
 	G.resultPointer = (G.resultArray.length == 0) ? -1 : 0;
 }
 
+// ファイル出力
 function outputToFile() {
 	let contents = "";
 	let rawContents = G.tableTag.innerHTML;
