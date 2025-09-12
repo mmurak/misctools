@@ -1,0 +1,73 @@
+<form id="myUnifiedForm">
+  <label for="searchField1">フィールド1:</label>
+  <input type="text" id="searchField1" name="field1" class="search-field" placeholder="キーワード1を入力">
+
+  <label for="searchField2">フィールド2:</label>
+  <input type="text" id="searchField2" name="field2" class="search-field" placeholder="キーワード2を入力">
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('myUnifiedForm');
+
+
+  form.addEventListener('keydown', function(event) {
+    // Enterキーが押された、かつかな漢字変換中ではないことを確認
+    if (event.key === 'Enter' && !event.isComposing) {
+      // デフォルトのEnterキーによるフォーム送信をキャンセル
+      event.preventDefault(); 
+      
+      // イベントが発生した要素（Enterを押したテキストフィールド）を取得
+      const targetField = event.target;
+
+      // ターゲットのIDで処理を分岐
+      if (targetField.id === 'searchField1') {
+        console.log('フィールド1でEnterが押されました。処理Aを実行します。');
+        performActionA(targetField.value);
+
+      } else if (targetField.id === 'searchField2') {
+        console.log('フィールド2でEnterが押されました。処理Bを実行します。');
+        performActionB(targetField.value);
+        
+      } else {
+        // その他のフィールドに対する処理（必要に応じて）
+        console.log('その他のフィールドでEnterが押されました。');
+      }
+    }
+  });
+
+
+
+  form.addEventListener('submit', function(event) {
+    // フォームのデフォルト送信をキャンセル
+    event.preventDefault();
+
+    // 現在フォーカスが当たっている要素（Enterを押したフィールド）を取得
+    const activeElement = document.activeElement;
+
+    // 取得した要素がinputタグであることを確認
+    if (activeElement.tagName === 'INPUT') {
+      const targetFieldId = activeElement.id;
+      
+      // IDで処理を分岐
+      if (targetFieldId === 'searchField1') {
+        console.log('フォーム送信でフィールド1の処理を実行します。');
+        performActionA(activeElement.value);
+
+      } else if (targetFieldId === 'searchField2') {
+        console.log('フォーム送信でフィールド2の処理を実行します。');
+        performActionB(activeElement.value);
+      }
+    }
+  });
+
+  // 以下はダミーの処理関数
+  function performActionA(keyword) {
+    alert(`フィールド1のキーワード "${keyword}" で処理Aを実行...`);
+  }
+
+  function performActionB(keyword) {
+    alert(`フィールド2のキーワード "${keyword}" で処理Bを実行...`);
+  }
+});
+</script>
