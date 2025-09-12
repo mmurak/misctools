@@ -1,7 +1,9 @@
 <form id="myUnifiedForm">
   <label for="searchField1">フィールド1:</label>
   <input type="text" id="searchField1" name="field1" class="search-field" placeholder="キーワード1を入力">
+</form>
 
+<form id="myUnifiedForm2">
   <label for="searchField2">フィールド2:</label>
   <input type="text" id="searchField2" name="field2" class="search-field" placeholder="キーワード2を入力">
 </form>
@@ -9,6 +11,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('myUnifiedForm');
+  const formDash = document.getElementById('myUnifiedForm2');
 
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Enter' && !event.isComposing) {
@@ -25,20 +28,39 @@ document.addEventListener('keydown', function(event) {
       
       // イベントが発生した要素（Enterを押したテキストフィールド）を取得
       const targetField = event.target;
-
+/*
       // ターゲットのIDで処理を分岐
       if (targetField.id === 'searchField1') {
+*/
         console.log('フィールド1でEnterが押されました。処理Aを実行します。');
         performActionA(targetField.value);
-
+/*
       } else if (targetField.id === 'searchField2') {
+
         console.log('フィールド2でEnterが押されました。処理Bを実行します。');
         performActionB(targetField.value);
+
         
       } else {
         // その他のフィールドに対する処理（必要に応じて）
         console.log('その他のフィールドでEnterが押されました。');
       }
+*/
+    }
+  });
+  
+  formDash.addEventListener('keydown', function(event) {
+    // Enterキーが押された、かつかな漢字変換中ではないことを確認
+    if (event.key === 'Enter' && !event.isComposing) {
+      // デフォルトのEnterキーによるフォーム送信をキャンセル
+      event.preventDefault(); 
+      
+      // イベントが発生した要素（Enterを押したテキストフィールド）を取得
+      const targetField = event.target;
+
+        console.log('フィールド2でEnterが押されました。処理Bを実行します。');
+        performActionB(targetField.value);
+        
     }
   });
 
