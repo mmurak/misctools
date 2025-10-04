@@ -69,7 +69,7 @@ dialog button:hover {
 				<div>
 					<div id="CBarea">
 					</div>
-					<input type="textfield" id="SearchField" placeholder="Shift+Enterで検索" size="20"></input>
+					<label id="DateTime"></label><input type="textfield" id="SearchField" placeholder="Shift+Enterで検索" size="20"></input>
 					<button onclick="prevResult();">↑</button>
 					<button onclick="nextResult();">↓</button>
 				</div>
@@ -100,6 +100,7 @@ class GlobalManager {
 
 		this.searchField = document.getElementById("SearchField");
 		this.cbArea = document.getElementById("CBarea");
+		this.dateTime = document.getElementById("DateTime");
 
 		this.dialogueContent = document.getElementById("DialogueContent");
 		this.closeDialogButton = document.getElementById("CloseDialogButton");
@@ -327,6 +328,9 @@ function jumpTo(tagNo) {
 	const header = document.querySelector('header');
 	const headerHeight = header ? header.offsetHeight : 0;
 	const targetElement = document.getElementById("d" + tagNo);
+	const leftmostTag = "d" + (tagNo - (tagNo % G.numberOfColumns) + 1);
+	const leftmostContents = document.getElementById(leftmostTag).innerHTML;
+	G.dateTime.innerHTML = leftmostContents;
 	if  (targetElement) {
 		const targetPosition = targetElement.getBoundingClientRect().top + window.pageYOffset;
 		const offsetPosition = targetPosition - headerHeight;
