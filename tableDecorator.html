@@ -120,7 +120,14 @@ const G = new GlobalManager();
 document.addEventListener("keydown", (evt) => {
 	if (evt.key == "Escape") {
 		if (document.activeElement == G.searchField) {
-			G.searchField.value = "";
+			if (evt.shiftKey) {
+				const ans = prompt("Enter tag#.");
+				if (ans.match(/^\d+$/)) {
+					jumpTo(ans);
+				}
+			} else {
+				G.searchField.value = "";
+			}
 		}
 		G.searchField.focus();
 	}
@@ -330,7 +337,7 @@ function jumpTo(tagNo) {
 	const targetElement = document.getElementById("d" + tagNo);
 	const leftmostTag = "d" + (tagNo - (tagNo % G.numberOfColumns) + 1);
 	const leftmostContents = document.getElementById(leftmostTag).innerHTML;
-	G.dateTime.innerHTML = leftmostContents;
+	G.dateTime.innerHTML = "[d" + tagNo + "] " + leftmostContents;
 	if  (targetElement) {
 		const targetPosition = targetElement.getBoundingClientRect().top + window.pageYOffset;
 		const offsetPosition = targetPosition - headerHeight;
