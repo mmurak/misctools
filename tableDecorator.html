@@ -215,6 +215,15 @@ G.inputFile.addEventListener("change", (evt) => {
 		makeTableFromTextArray(G.tableTag, dataArray);
 		G.divView.appendChild(G.tableTag);
 
+		G.tableTag.addEventListener("click", (evt) => {
+			let currentTag = evt.target;
+			while(currentTag.id == "")  currentTag = currentTag.parentElement;
+			G.currentId = currentTag.id;
+			const daytimeID = "d" + (Math.floor((G.currentId.substring(1) - 1) / G.numberOfColumns) * G.numberOfColumns + 1);
+			const daytime = document.getElementById(daytimeID).innerHTML;
+			G.dateTime.innerHTML = "[" + G.currentId + "] " + daytime;
+		});
+
 		G.tableTag.addEventListener("dblclick", (evt) => {
 			G.content = document.createElement("div");
 			G.content.id = "Editor";
