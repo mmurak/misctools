@@ -81,6 +81,7 @@ dialog button:hover {
 		</main>
 
 		<dialog id="DialogueBox">
+			<div id="DialogueID"></div>
 			<div id="DialogueContent"></div>
 			<button id="CloseDialogButton">閉じる</button>
 		</dialog>
@@ -111,6 +112,7 @@ class GlobalManager {
 		this.numberOfColumns = 0;
 		this.resultArray = [];
 		this.resultPointer = 0;
+		this.dialogueID = document.getElementById("DialogueID");
 
 		this.htmlPreamble = '<html><head><meta charset="UTF-8">\n<style>table{table-layout: fixed;width: 100%;}table td{overflow-wrap:break-word;width:20%;}</style>\n</head>\n<table border="1" id="myTable">';
 		this.htmlPostamble = '</table>\n</body>\n</html>\n';
@@ -233,7 +235,9 @@ G.inputFile.addEventListener("change", (evt) => {
 				placeholder: 'Compose an epic...',
 				theme: 'snow', // or 'bubble'
 			});
-
+			const daytimeID = "d" + (Math.floor((G.currentId.substring(1) - 1) / G.numberOfColumns) * G.numberOfColumns + 1);
+			const daytime = document.getElementById(daytimeID).innerHTML;
+			G.dialogueID.innerHTML = "[" + G.currentId + "]" + daytime;
 			G.dialogueBox.showModal();
 		});
 
