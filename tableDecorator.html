@@ -216,12 +216,7 @@ G.inputFile.addEventListener("change", (evt) => {
 		G.divView.appendChild(G.tableTag);
 
 		G.tableTag.addEventListener("click", (evt) => {
-			let currentTag = evt.target;
-			while(currentTag.id == "")  currentTag = currentTag.parentElement;
-			G.currentId = currentTag.id;
-			const daytimeID = "d" + (Math.floor((G.currentId.substring(1) - 1) / G.numberOfColumns) * G.numberOfColumns + 1);
-			const daytime = document.getElementById(daytimeID).innerHTML;
-			G.dateTime.innerHTML = "[" + G.currentId + "] " + daytime;
+			G.dateTime.innerHTML = formatTagInfo(evt.target);
 		});
 
 		G.tableTag.addEventListener("dblclick", (evt) => {
@@ -244,9 +239,7 @@ G.inputFile.addEventListener("change", (evt) => {
 				placeholder: 'Compose an epic...',
 				theme: 'snow', // or 'bubble'
 			});
-			const daytimeID = "d" + (Math.floor((G.currentId.substring(1) - 1) / G.numberOfColumns) * G.numberOfColumns + 1);
-			const daytime = document.getElementById(daytimeID).innerHTML;
-			G.dialogueID.innerHTML = "[" + G.currentId + "]" + daytime;
+			G.dialogueID.innerHTML = formatTagInfo(evt.target);
 			G.dialogueBox.showModal();
 		});
 
@@ -351,7 +344,8 @@ function jumpTo(tagNo) {
 	const targetElement = document.getElementById("d" + tagNo);
 	const leftmostTag = "d" + (tagNo - (tagNo % G.numberOfColumns) + 1);
 	const leftmostContents = document.getElementById(leftmostTag).innerHTML;
-	G.dateTime.innerHTML = "[d" + tagNo + "] " + leftmostContents;
+	const contents = "[d" + tagNo + "] " + leftmostContents;
+	G.dateTime.innerHTML = "<a href='javascript:copyData(\"" + contents + "\")'>" + contents+ "</a>";
 	if  (targetElement) {
 		const targetPosition = targetElement.getBoundingClientRect().top + window.pageYOffset;
 		const offsetPosition = targetPosition - headerHeight;
@@ -360,6 +354,24 @@ function jumpTo(tagNo) {
 			behavior: 'smooth' // smooth scroll
 		});
 	}
+}
+
+function formatTagInfo(obj) {
+	while(obj.id == "") obj = obj.parentElement;
+	G.currentId = obj.id;
+	const daytimeID = "d" + (Math.floor((G.currentId.substring(1) - 1) / G.numberOfColumns) * G.numberOfColumns + 1);
+	const daytime = document.getElementById(daytimeID).innerHTML;
+	const contents = "[" + G.currentId + "] " + daytime;
+	return "<a href='javascript:copyData(\"" + contents + "\")'>" + contents + "</a>";
+}
+
+function copyData(text) {
+	navigator.clipboard.writeText(text)
+	.then(() => {
+	})
+	.catch(err => {
+		console.error('クリップボードへのコピーに失敗しました:', err);
+	});
 }
 		</script>
 	</body>
