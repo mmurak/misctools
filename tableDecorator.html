@@ -114,7 +114,7 @@ class GlobalManager {
 		this.resultPointer = 0;
 		this.dialogueID = document.getElementById("DialogueID");
 
-		this.htmlPreamble = '<html><head><meta charset="UTF-8">\n<style>table{table-layout: fixed;width: 100%;}table td{overflow-wrap:break-word;width:20%;}</style>\n</head>\n<table border="1" id="myTable">';
+		this.htmlPreamble = '<html><head><meta charset="UTF-8">\n<style>table{table-layout: fixed;width: 100%;}table td{overflow-wrap:break-word;width:20%;vertical-align: top;}</style>\n</head>\n<table border="1" id="myTable">';
 		this.htmlPostamble = '</table>\n</body>\n</html>\n';
 	}
 }
@@ -196,7 +196,7 @@ G.inputFile.addEventListener("change", (evt) => {
 			alert("No <table> elements in this file.");
 			return;
 		}
-		const dataArray = extractTextFromTableData(m[1]);
+		const [dataArray, thArray] = extractTextFromTableData(m[1]);
 
 		// generate checkboxes
 		G.cbArea.innerHTML = "";
@@ -212,7 +212,7 @@ G.inputFile.addEventListener("change", (evt) => {
 		G.tableTag = document.createElement('table');
 		G.tableTag.border = 1;
 
-		makeTableFromTextArray(G.tableTag, dataArray);
+		makeTableFromTextArray(G.tableTag, dataArray, thArray);
 		G.divView.appendChild(G.tableTag);
 
 		G.tableTag.addEventListener("click", (evt) => {
@@ -248,22 +248,39 @@ G.inputFile.addEventListener("change", (evt) => {
 });
 
 
-// HTMLテーブルからテキスト配列を生成する
+// HTMLテーブルのテキストからテキスト配列を生成する
 function extractTextFromTableData(html) {
 	const virtualTable = document.createElement('table');
 	virtualTable.innerHTML = html;
+	let headerArray = [];
 	let resultArray = [];
 	const trElements = virtualTable.querySelectorAll('tr');
 	for (let tr of trElements) {
 		const tdElements = tr.querySelectorAll('td');
 		tdArray = Array.from(tdElements).map(td => td.innerHTML);
-		resultArray.push(tdArray);
+		if (tdArray.length > 0)
+			resultArray.push(tdArray);
+
+		const thElements = tr.querySelectorAll('th');
+		thArray = Array.from(thElements).map(th => th.innerHTML);
+		if (thArray.length > 0)
+			headerArray.push(thArray);
 	}
-	return resultArray;
+	return [resultArray, headerArray];
 }
 
 // テキスト配列からテーブル要素を作成する（d+nnタグを付加）
-function makeTableFromTextArray(tableTag, textArray) {
+function makeTableFromTextArray(tableTag, textArray, thArray) {
+	for (const line of thArray) {
+		const lineTag = document.createElement('tr');
+		for (const item of line) {
+			const dataTag = document.createElement('th');
+			dataTag.innerHTML = item;
+			lineTag.appendChild(dataTag);
+		}
+		tableTag.appendChild(lineTag);
+	}
+
 	let dno = 1;
 	for (const line of textArray) {
 		const lineTag = document.createElement('tr');
