@@ -2076,7 +2076,29 @@
     touchSelectMode = false;
   }, { passive: true });
 
-    toggleNormal.addEventListener('click', () => {
+    // タッチ時に選択を保持するヘルパー
+  function addTouchSelectionGuard(el) {
+    el.addEventListener('touchstart', e => {
+      e.preventDefault();
+      window._savedSelStart = selStart ? { ...selStart } : null;
+      window._savedSelEnd   = selEnd   ? { ...selEnd   } : null;
+    }, { passive: false });
+    el.addEventListener('touchend', e => {
+      e.preventDefault();
+      if (window._savedSelStart !== undefined) selStart = window._savedSelStart;
+      if (window._savedSelEnd   !== undefined) selEnd   = window._savedSelEnd;
+      window._savedSelStart = undefined;
+      window._savedSelEnd   = undefined;
+      el.click();
+    }, { passive: false });
+  }
+
+  addTouchSelectionGuard(toggleNormal);
+  addTouchSelectionGuard(toggleStrong);
+  addTouchSelectionGuard(toggleArrow);
+  addTouchSelectionGuard(toggleDrawMode);
+
+  toggleNormal.addEventListener('click', () => {
     modeStrong = false;
     toggleNormal.classList.add('active');
     toggleStrong.classList.remove('active');
