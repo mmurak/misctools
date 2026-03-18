@@ -1948,20 +1948,17 @@
       clearTimeout(longPressTimer);
       touchSelectMode = false;
       longPressTimer = setTimeout(() => {
+        // 長押し成立：タップ位置をアンカーにして選択開始（単語選択なし）
         touchSelectMode = true;
         const li  = lineFromY(y);
         const col = colFromX(lines[li], x);
-        const t2  = lines[li];
-        let s = col, en = col;
-        while (s > 0 && /\S/.test(t2[s-1])) s--;
-        while (en < t2.length && /\S/.test(t2[en])) en++;
-        selStart = { line: li, col: s };
-        selEnd   = { line: li, col: en };
-        touchSelectAnchor = { line: li, col: s };
-        cursorLine = li; cursorCol = en;
+        touchSelectAnchor = { line: li, col };
+        selStart = { line: li, col };
+        selEnd   = { line: li, col };
+        cursorLine = li; cursorCol = col;
         setFocus(true);
         render();
-        if (navigator.vibrate) navigator.vibrate(30);
+        if (navigator.vibrate) navigator.vibrate(20);
       }, LONG_PRESS_MS);
     }
   }, { passive: false });
