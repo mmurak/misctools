@@ -8,11 +8,18 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* Android/iOS長押しデフォルト選択を抑制（スクロールは許可） */
-  #editor-canvas {
+  /* Android/iOS長押しデフォルト選択を抑制 */
+  #canvas-wrapper, #canvas-wrapper * {
     -webkit-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
+  }
+  /* ボタン・入力欄は選択可能に戻す */
+  #canvas-wrapper button,
+  #canvas-wrapper input,
+  #canvas-wrapper select {
+    -webkit-user-select: auto;
+    user-select: auto;
   }
 
   :root {
