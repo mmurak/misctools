@@ -1,0 +1,1913 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CANVAS TEXT EDITOR</title>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Share+Tech+Mono&family=Noto+Serif+JP:wght@400;700&family=Noto+Sans+JP:wght@400;700&family=Zen+Kaku+Gothic+New&family=Sawarabi+Mincho&family=Courier+Prime&family=EB+Garamond&family=DM+Mono&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --paper: #f0f8ff;
+    --ink: #1a1208;
+    --ink-faded: #111111;
+    --rust: #2a6080;
+    --aged: #1a1a1a;
+  }
+
+  body {
+    background-color: #a8c8d8;
+    background-image:
+      radial-gradient(ellipse at 20% 50%, #b8d4e4 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, #a0c0d0 0%, transparent 50%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 4px 4px;
+    font-family: 'Special Elite', serif;
+  }
+
+  .editor-frame {
+    background: linear-gradient(160deg, #d0e8f4 0%, #c4e0ee 50%, #cce4f0 100%);
+    border: 2px solid #7ab0c8;
+    border-radius: 4px;
+    padding: 8px;
+    box-shadow: 0 0 0 1px #0a0704, 0 8px 32px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05);
+    width: 100%;
+    max-width: 1200px;
+  }
+
+  /* ── Toolbar ── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    background: rgba(100,160,200,0.25);
+    border: 1px solid #6a9ab0;
+    border-radius: 3px;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--aged);
+    opacity: 0.55;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .toolbar-divider {
+    width: 1px;
+    height: 22px;
+    background: rgba(255,255,255,0.08);
+    flex-shrink: 0;
+  }
+
+  .custom-select { position: relative; }
+
+  .custom-select select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 2px;
+    color: var(--aged);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    padding: 5px 28px 5px 10px;
+    cursor: pointer;
+    outline: none;
+    letter-spacing: 0.5px;
+    transition: border-color 0.15s, background 0.15s;
+    min-width: 160px;
+  }
+
+  .custom-select select:hover,
+  .custom-select select:focus {
+    border-color: rgba(139,58,26,0.6);
+    background: rgba(255,255,255,0.08);
+  }
+
+  .custom-select::after {
+    content: '▾';
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--aged);
+    opacity: 0.5;
+    font-size: 10px;
+    pointer-events: none;
+  }
+
+  .size-control {
+    display: flex;
+    align-items: center;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .size-btn {
+    background: rgba(255,255,255,0.05);
+    border: none;
+    color: var(--aged);
+    font-size: 16px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+    line-height: 1;
+    font-family: monospace;
+  }
+
+  .size-btn:hover { background: rgba(139,58,26,0.35); }
+  .size-btn:active { background: rgba(139,58,26,0.55); }
+
+  #btn-pos-settings {
+    width: auto;
+    height: 28px;
+    font-size: 11px;
+    border: 1px solid rgba(100,160,200,0.7);
+    border-radius: 3px;
+    background: rgba(255,255,255,0.25);
+    color: #1a1a1a;
+    padding: 0 12px;
+    white-space: nowrap;
+    letter-spacing: 1px;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+
+  #btn-pos-settings:hover {
+    background: rgba(40,120,180,0.55) !important;
+    color: #fff !important;
+    border-color: rgba(40,120,180,0.9);
+  }
+
+  #btn-pos-settings:active {
+    background: rgba(40,120,180,0.8) !important;
+  }
+
+  .size-display {
+    background: rgba(100,160,200,0.15);
+    border-left: 1px solid rgba(255,255,255,0.08);
+    border-right: 1px solid rgba(255,255,255,0.08);
+    color: var(--aged);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    width: 38px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 0.5px;
+    user-select: none;
+  }
+
+  .paper-roll {
+    width: 100%;
+    height: 10px;
+    background: linear-gradient(90deg, #90b8cc 0%, #b8d8e8 20%, #d8f0f8 50%, #b8d8e8 80%, #90b8cc 100%);
+    border-radius: 2px 2px 0 0;
+    box-shadow: 0 -2px 4px rgba(0,0,0,0.4);
+  }
+
+  .canvas-wrapper {
+    position: relative;
+    background: var(--paper);
+    box-shadow: inset 0 0 30px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.5);
+    overflow: auto;
+    max-height: 80vh;
+    min-height: 200px;
+  }
+
+  .canvas-wrapper::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  #editor-canvas { display: block; }
+
+  .paper-roll-bottom {
+    width: 100%;
+    height: 10px;
+    background: linear-gradient(90deg, #90b8cc 0%, #b8d8e8 20%, #d8f0f8 50%, #b8d8e8 80%, #90b8cc 100%);
+    border-radius: 0 0 2px 2px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+  }
+
+  .key-hint {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .hint {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--aged);
+    opacity: 0.45;
+    letter-spacing: 1px;
+  }
+
+  .hint span {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 1px 5px;
+    border-radius: 2px;
+    margin-right: 4px;
+  }
+
+  .focus-prompt {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: text;
+    z-index: 10;
+  }
+
+  .focus-prompt.hidden { display: none; }
+
+  .focus-text {
+    font-family: 'Special Elite', serif;
+    font-size: 14px;
+    color: var(--ink-faded);
+    opacity: 0.3;
+    letter-spacing: 2px;
+    pointer-events: none;
+  }
+
+  /* ── Line Panel ── */
+  .line-panel {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: rgba(100,160,200,0.2);
+    border: 1px solid #6a9ab0;
+    border-radius: 3px;
+    flex-wrap: wrap;
+  }
+
+  .panel-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--aged);
+    opacity: 0.55;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .line-btns {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .line-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--aged);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 2px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+
+  .line-btn:hover {
+    background: rgba(139,58,26,0.3);
+    border-color: rgba(139,58,26,0.6);
+    color: #f5ead8;
+  }
+
+  .line-btn:active {
+    background: rgba(139,58,26,0.55);
+  }
+
+  .line-btn--erase {
+    border-color: rgba(80,80,80,0.4);
+    color: #a09080;
+  }
+
+  .line-btn--diag {
+    border-color: rgba(60,100,180,0.4);
+    color: #90a8c8;
+  }
+
+  .line-btn--diag:hover {
+    background: rgba(30,60,160,0.3);
+    border-color: rgba(80,120,220,0.6);
+    color: #c0d4f0;
+  }
+
+  .line-btn--erase:hover {
+    background: rgba(80,40,20,0.4);
+    border-color: rgba(120,80,50,0.6);
+    color: #d0b090;
+  }
+
+  /* ── Position Dialog ── */
+  .pos-dialog-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .pos-dialog-overlay.open { display: flex; }
+
+  .pos-dialog {
+    background: #ddeef8;
+    border: 1px solid #7ab0c8;
+    border-radius: 6px;
+    padding: 20px 24px;
+    min-width: 340px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  }
+
+  .pos-dialog h3 {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: #1a1a1a;
+    margin-bottom: 16px;
+  }
+
+  .pos-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .pos-row label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: #1a1a1a;
+    width: 80px;
+    flex-shrink: 0;
+  }
+
+  .pos-row input[type=range] {
+    flex: 1;
+    accent-color: #2a6080;
+  }
+
+  .pos-row input[type=number] {
+    width: 58px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    padding: 2px 4px;
+    border: 1px solid #7ab0c8;
+    border-radius: 2px;
+    background: #f0f8ff;
+    color: #1a1a1a;
+    text-align: right;
+  }
+
+  .pos-dialog-btns {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .pos-dialog-btns button {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    padding: 5px 16px;
+    border-radius: 3px;
+    cursor: pointer;
+    border: 1px solid #7ab0c8;
+    background: rgba(255,255,255,0.5);
+    color: #1a1a1a;
+    transition: background 0.15s;
+  }
+
+  .pos-dialog-btns button:hover { background: rgba(100,160,200,0.3); }
+  .pos-dialog-btns button.primary {
+    background: rgba(40,120,180,0.6);
+    color: #fff;
+    border-color: rgba(40,120,180,0.8);
+  }
+  .pos-dialog-btns button.primary:hover { background: rgba(40,120,180,0.8); }
+
+  /* ── Mode Toggle ── */
+  .mode-toggle-group {
+    display: flex;
+    gap: 0;
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid rgba(100,160,200,0.5);
+  }
+
+  .mode-toggle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: #1a1a1a;
+    background: rgba(255,255,255,0.3);
+    border: none;
+    border-right: 1px solid rgba(100,160,200,0.4);
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+
+  .mode-toggle:last-child { border-right: none; }
+
+  .mode-toggle.active {
+    background: rgba(40,120,180,0.6);
+    color: #fff;
+  }
+
+  .mode-toggle:hover:not(.active) {
+    background: rgba(100,160,210,0.3);
+  }
+
+  .arrow-toggle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: #1a1a1a;
+    background: rgba(255,255,255,0.3);
+    border: 1px solid rgba(100,160,200,0.5);
+    border-radius: 3px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+
+  .arrow-toggle.active {
+    background: rgba(40,120,180,0.6);
+    color: #fff;
+    border-color: rgba(40,120,180,0.8);
+  }
+
+  .arrow-toggle:hover:not(.active) {
+    background: rgba(100,160,210,0.3);
+  }
+
+  /* ── Save/Load Panel ── */
+  .saveload-panel {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: rgba(100,160,200,0.2);
+    border: 1px solid #6a9ab0;
+    border-radius: 3px;
+    flex-wrap: wrap;
+  }
+
+  .saveload-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--aged);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 2px;
+    padding: 5px 14px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+
+  .saveload-btn:hover {
+    background: rgba(139,58,26,0.3);
+    border-color: rgba(139,58,26,0.6);
+    color: #f5ead8;
+  }
+
+  .saveload-btn:active { background: rgba(139,58,26,0.55); }
+
+  .saveload-msg {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--aged);
+    opacity: 0;
+    letter-spacing: 1px;
+    transition: opacity 0.3s;
+  }
+
+  .saveload-msg.visible { opacity: 0.7; }
+
+  .line-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+</style>
+</head>
+<body>
+
+<!-- 位置設定ダイアログ -->
+<div class="pos-dialog-overlay" id="pos-dialog-overlay">
+  <div class="pos-dialog">
+    <h3>LINE POSITION SETTINGS</h3>
+    <div class="pos-row">
+      <label>上端</label>
+      <input type="range" id="pos-top"    min="-112" max="8" step="1">
+      <input type="number" id="pos-top-n" min="-112" max="8" step="1">
+    </div>
+    <div class="pos-row">
+      <label>上寄り</label>
+      <input type="range" id="pos-upper"    min="-93" max="27" step="1">
+      <input type="number" id="pos-upper-n" min="-93" max="27" step="1">
+    </div>
+    <div class="pos-row">
+      <label>ベースライン</label>
+      <input type="range" id="pos-middle"    min="-51" max="69" step="1">
+      <input type="number" id="pos-middle-n" min="-51" max="69" step="1">
+    </div>
+    <div class="pos-row">
+      <label>下寄り</label>
+      <input type="range" id="pos-lower"    min="-40" max="80" step="1">
+      <input type="number" id="pos-lower-n" min="-40" max="80" step="1">
+    </div>
+    <div class="pos-row">
+      <label>下端</label>
+      <input type="range" id="pos-bottom"    min="-8" max="112" step="1">
+      <input type="number" id="pos-bottom-n" min="-8" max="112" step="1">
+    </div>
+    <div class="pos-row">
+      <label>行間倍率</label>
+      <input type="range" id="pos-lh"    min="20" max="300" step="1">
+      <input type="number" id="pos-lh-n" min="20" max="300" step="1">
+    </div>
+    <div class="pos-dialog-btns">
+      <button id="pos-reset">リセット</button>
+      <button id="pos-cancel">キャンセル</button>
+      <button class="primary" id="pos-apply">適用</button>
+    </div>
+  </div>
+</div>
+
+<div class="editor-frame">
+
+  <div class="toolbar" id="toolbar">
+    <span class="toolbar-label">Font</span>
+    <div class="custom-select">
+      <select id="font-select">
+        <option value="'Special Elite', serif">Special Elite</option>
+        <option value="'Times New Roman', serif" selected>Times New Roman</option>
+        <option value="'Noto Serif JP', serif">Noto Serif JP</option>
+        <option value="'Sawarabi Mincho', serif">Sawarabi Mincho</option>
+        <option value="'Noto Sans JP', sans-serif">Noto Sans JP</option>
+        <option value="'Zen Kaku Gothic New', sans-serif">Zen Kaku Gothic</option>
+        <option value="'EB Garamond', serif">EB Garamond</option>
+        <option value="'Courier Prime', monospace">Courier Prime</option>
+        <option value="'DM Mono', monospace">DM Mono</option>
+        <option value="'Share Tech Mono', monospace">Share Tech Mono</option>
+      </select>
+    </div>
+
+    <div class="toolbar-divider"></div>
+
+    <span class="toolbar-label">Size</span>
+    <div class="size-control">
+      <button class="size-btn" id="size-down">−</button>
+      <div class="size-display" id="size-display">36</div>
+      <button class="size-btn" id="size-up">+</button>
+    </div>
+
+    <div class="toolbar-divider"></div>
+    <div style="width:8px;"></div>
+
+    <button class="size-btn" id="btn-pos-settings" title="各線の高さ位置を設定">⚙ 描画設定</button>
+  </div>
+
+  <div class="paper-roll"></div>
+  <div class="canvas-wrapper" id="canvas-wrapper">
+    <canvas id="editor-canvas"></canvas>
+    <canvas id="overlay-canvas" style="position:absolute;top:0;left:0;pointer-events:none;z-index:5;"></canvas>
+    <div class="focus-prompt" id="focus-prompt">
+      <div class="focus-text">— クリックして入力開始 —</div>
+    </div>
+  </div>
+  <div class="paper-roll-bottom"></div>
+
+
+  <div class="line-panel" id="line-panel">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <span class="panel-label">選択範囲に線を引く</span>
+      <button class="arrow-toggle" id="toggle-draw-mode" title="ドラッグで横線を描画">✏️ 描画モード</button>
+    </div>
+    <div class="line-btns">
+      <button class="line-btn" data-pos="top"     title="行の上端">上端</button>
+      <button class="line-btn" data-pos="upper"   title="文字の上1/4">上寄り</button>
+      <button class="line-btn" data-pos="middle"  title="ベースライン">ベースライン</button>
+      <button class="line-btn" data-pos="lower"   title="ベースライン">下寄り</button>
+      <button class="line-btn" data-pos="bottom"  title="行の下端">下端</button>
+      <button class="line-btn line-btn--diag"  data-pos="diag"  title="直前・直後の横線を斜線でつなぐ">／ 斜線</button>
+      <button class="line-btn line-btn--erase" data-pos="erase" title="最後の線を消去">⌫ 消去</button>
+    </div>
+  </div>
+  <div class="line-panel" id="line-panel-style">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="panel-label">スタイル</span>
+      <div class="mode-toggle-group">
+        <button class="mode-toggle active" id="toggle-normal" title="点線（通常）">○ 通常</button>
+        <button class="mode-toggle"        id="toggle-strong" title="実線・太線（強調）">● 強調</button>
+      </div>
+      <button class="arrow-toggle" id="toggle-arrow" title="矢印付き">→ 矢印</button>
+    </div>
+  </div>
+  <div class="key-hint">
+    <div class="hint"><span>Enter</span>改行</div>
+    <div class="hint"><span>Backspace</span>削除</div>
+    <div class="hint"><span>Ctrl+A</span>全選択</div>
+    <div class="hint"><span>Ctrl+Z</span>元に戻す</div>
+  </div>
+
+  <div class="saveload-panel">
+    <span class="toolbar-label">File</span>
+    <button class="saveload-btn" id="btn-save">💾 保存</button>
+    <button class="saveload-btn" id="btn-load">📂 読み込み</button>
+    <button class="saveload-btn" id="btn-png">🖼 PNG出力</button>
+    <span class="saveload-msg" id="saveload-msg"></span>
+  </div>
+</div>
+
+<input type="file" id="file-input" accept=".lpe" style="display:none;">
+
+<textarea id="input-trap" style="position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;top:0;left:0;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+
+<script>
+(function() {
+  const canvas = document.getElementById('editor-canvas');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay-canvas');
+  const octx = overlay.getContext('2d');
+  const wrapper = document.getElementById('canvas-wrapper');
+  const toolbar = document.getElementById('toolbar');
+  const trap = document.getElementById('input-trap');
+  const focusPrompt = document.getElementById('focus-prompt');
+  const fontSelect = document.getElementById('font-select');
+  const sizeDisplay = document.getElementById('size-display');
+  const sizeUp = document.getElementById('size-up');
+  const sizeDown = document.getElementById('size-down');
+
+  // --- Configurable ---
+  const MARGIN_LEFT = 24;
+  const MARGIN_TOP = 40;
+  const MARGIN_RIGHT = 24;
+  const CANVAS_MIN_HEIGHT = 400;
+  const CANVAS_MIN_WIDTH  = 600;
+  const INK = '#1a1208';
+  const CURSOR_COLOR = '#8b3a1a';
+  const SELECTION_COLOR = 'rgba(139,58,26,0.18)';
+  const SIZE_MIN = 10;
+  const SIZE_MAX = 48;
+  const SIZE_STEP = 2;
+
+  let FONT_SIZE = 36;
+  let FONT_FACE = "'Times New Roman', serif";
+  let LINE_HEIGHT = computeLH();
+
+  function computeLH() { return 115; }
+
+  // --- State ---
+  let lines = [''];
+  let cursorLine = 0, cursorCol = 0;
+  let selStart = null, selEnd = null;
+  let focused = false;
+  let cursorVisible = true, cursorTimer = null;
+  let history = [], historyIndex = -1;
+  let lastClickTime = 0, clickCount = 0;
+  let dragging = false;
+
+  // オーバーレイ線ストローク履歴
+  let strokes = [];
+  // 斜線ストローク履歴: [{x1,y1,x2,y2,color,lw}]
+  let diagStrokes = [];
+
+  // ボタンごとの線スタイル設定
+  const LINE_COLOR = 'rgba(200,30,30,0.60)';
+  const LINE_STYLES = {
+    top:    { offset: -52, color: LINE_COLOR, lw: 6 },
+    upper:  { offset: -33, color: LINE_COLOR, lw: 6 },
+    middle: { offset:   3, color: LINE_COLOR, lw: 6 },
+    lower:  { offset:  30, color: LINE_COLOR, lw: 6 },
+    bottom: { offset:  52, color: LINE_COLOR, lw: 6 },
+  };
+
+  // IME composition state
+  let isComposing = false;
+  let compositionText = '';   // 変換中の仮テキスト
+
+  // --- Font / Size controls ---
+  fontSelect.addEventListener('change', () => { FONT_FACE = fontSelect.value; render(); });
+
+  sizeUp.addEventListener('click', () => {
+    if (FONT_SIZE < SIZE_MAX) { FONT_SIZE = Math.min(SIZE_MAX, FONT_SIZE + SIZE_STEP); LINE_HEIGHT = computeLH(); sizeDisplay.textContent = FONT_SIZE; render(); }
+  });
+
+  sizeDown.addEventListener('click', () => {
+    if (FONT_SIZE > SIZE_MIN) { FONT_SIZE = Math.max(SIZE_MIN, FONT_SIZE - SIZE_STEP); LINE_HEIGHT = computeLH(); sizeDisplay.textContent = FONT_SIZE; render(); }
+  });
+
+  // Toolbar clicks don't steal editor focus
+  toolbar.addEventListener('mousedown', (e) => {
+    if (focused && e.target !== fontSelect) { e.preventDefault(); setTimeout(() => trap.focus(), 0); }
+  });
+
+  // --- Canvas resize ---
+  // コンテンツに応じてcanvasサイズを動的に拡張
+  function computeCanvasSize() {
+    const neededH = MARGIN_TOP + lines.length * LINE_HEIGHT + MARGIN_TOP;
+    const h = Math.max(CANVAS_MIN_HEIGHT, neededH);
+    // 最長行の幅を計算
+    ctx.font = `${FONT_SIZE}px ${FONT_FACE}`;
+    let maxW = 0;
+    lines.forEach(l => { const w = ctx.measureText(l).width; if (w > maxW) maxW = w; });
+    const w = Math.max(CANVAS_MIN_WIDTH, wrapper.clientWidth, MARGIN_LEFT + maxW + MARGIN_RIGHT + 20);
+    return { w: Math.ceil(w), h: Math.ceil(h) };
+  }
+
+  function resizeCanvas(forceRender = true) {
+    const { w, h } = computeCanvasSize();
+    let changed = false;
+    if (canvas.width !== w)  { canvas.width  = w; changed = true; }
+    if (canvas.height !== h) { canvas.height = h; changed = true; }
+    if (forceRender || changed) {
+      render();
+      if (typeof syncOverlay === 'function') syncOverlay();
+    }
+  }
+  window.addEventListener('resize', () => resizeCanvas());
+  resizeCanvas();
+
+  // --- History ---
+  function saveHistory() {
+    const state = { lines: lines.map(l => l), cursorLine, cursorCol };
+    if (historyIndex < history.length - 1) history = history.slice(0, historyIndex + 1);
+    history.push(state);
+    if (history.length > 100) history.shift();
+    historyIndex = history.length - 1;
+  }
+
+  function undo() {
+    if (historyIndex > 0) {
+      historyIndex--;
+      const s = history[historyIndex];
+      lines = s.lines.map(l => l); cursorLine = s.cursorLine; cursorCol = s.cursorCol;
+      clearSelection(); render(); updateStats();
+    }
+  }
+
+  saveHistory();
+
+  // --- Render ---
+  function render() {
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // Paper
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+
+
+
+    // Selection
+    if (selStart && selEnd) {
+      const [sS, sE] = normSel();
+      ctx.fillStyle = SELECTION_COLOR;
+      for (let li = sS.line; li <= sE.line; li++) {
+        const baselineY = MARGIN_TOP + li * LINE_HEIGHT + FONT_SIZE;
+        const selTop    = baselineY + LINE_STYLES.top.offset;
+        const selBot    = baselineY + LINE_STYLES.bottom.offset;
+        const selH      = selBot - selTop;
+        const x1 = li === sS.line ? xFromCol(lines[li], sS.col) : MARGIN_LEFT;
+        const x2 = li === sE.line ? xFromCol(lines[li], sE.col) : xFromCol(lines[li], lines[li].length) + 4;
+        ctx.fillRect(x1, selTop, x2 - x1, selH);
+      }
+    }
+
+    // Text
+    ctx.font = `${FONT_SIZE}px ${FONT_FACE}`;
+    ctx.fillStyle = INK;
+    ctx.textBaseline = 'alphabetic';
+    for (let i = 0; i < lines.length; i++) {
+      const y = MARGIN_TOP + i * LINE_HEIGHT;
+      if (y + LINE_HEIGHT < 0 || y > h) continue;
+      if (lines[i]) ctx.fillText(lines[i], MARGIN_LEFT, y + FONT_SIZE);
+    }
+
+    // IME composition preview (変換中テキストを下線付きで表示)
+    if (isComposing && compositionText) {
+      const cy = MARGIN_TOP + cursorLine * LINE_HEIGHT;
+      const cx = xFromCol(lines[cursorLine], cursorCol);
+      ctx.font = `${FONT_SIZE}px ${FONT_FACE}`;
+      ctx.fillStyle = '#5a3a8a';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(compositionText, cx, cy + FONT_SIZE);
+      const tw = ctx.measureText(compositionText).width;
+      ctx.strokeStyle = '#5a3a8a';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy + FONT_SIZE + 3);
+      ctx.lineTo(cx + tw, cy + FONT_SIZE + 3);
+      ctx.stroke();
+    }
+
+    // キャンバスサイズをコンテンツに合わせて再チェック（無限ループ防止のため条件付き）
+    {
+      const { w, h } = computeCanvasSize();
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width  = w;
+        canvas.height = h;
+        if (typeof syncOverlay === 'function') syncOverlay();
+        // サイズ変更後に再描画（1回のみ）
+        requestAnimationFrame(() => render());
+        return;
+      }
+    }
+
+    // Cursor
+    if (focused && cursorVisible) {
+      const cy = MARGIN_TOP + cursorLine * LINE_HEIGHT;
+      ctx.font = `${FONT_SIZE}px ${FONT_FACE}`;
+      const cursorX = isComposing && compositionText
+        ? xFromCol(lines[cursorLine], cursorCol) + ctx.measureText(compositionText).width
+        : xFromCol(lines[cursorLine], cursorCol);
+      ctx.save();
+      ctx.strokeStyle = CURSOR_COLOR;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = CURSOR_COLOR;
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.moveTo(cursorX, cy + 3);
+      ctx.lineTo(cursorX, cy + FONT_SIZE + 4);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  function xFromCol(text, col) {
+    ctx.font = `${FONT_SIZE}px ${FONT_FACE}`;
+    return MARGIN_LEFT + ctx.measureText(text.substring(0, col)).width;
+  }
+
+  function colFromX(text, x) {
+    ctx.font = `${FONT_SIZE}px ${FONT_FACE}`;
+    const rx = x - MARGIN_LEFT;
+    if (rx <= 0) return 0;
+    for (let i = 1; i <= text.length; i++) {
+      const w = ctx.measureText(text.substring(0, i)).width;
+      const wp = ctx.measureText(text.substring(0, i - 1)).width;
+      if (rx < (wp + w) / 2) return i - 1;
+    }
+    return text.length;
+  }
+
+  function lineFromY(y) {
+    return Math.max(0, Math.min(lines.length - 1, Math.floor((y - MARGIN_TOP) / LINE_HEIGHT)));
+  }
+
+  function normSel() {
+    const a = selStart, b = selEnd;
+    return (a.line < b.line || (a.line === b.line && a.col <= b.col)) ? [a, b] : [b, a];
+  }
+
+  function clearSelection() { selStart = null; selEnd = null; }
+
+  function getSelectedText() {
+    if (!selStart || !selEnd) return '';
+    const [s, e] = normSel();
+    if (s.line === e.line) return lines[s.line].substring(s.col, e.col);
+    let t = lines[s.line].substring(s.col) + '\n';
+    for (let i = s.line + 1; i < e.line; i++) t += lines[i] + '\n';
+    return t + lines[e.line].substring(0, e.col);
+  }
+
+  function deleteSel() {
+    if (!selStart || !selEnd) return;
+    const [s, e] = normSel();
+    const before = lines[s.line].substring(0, s.col);
+    const after = lines[e.line].substring(e.col);
+    lines.splice(s.line, e.line - s.line + 1, before + after);
+    cursorLine = s.line; cursorCol = s.col; clearSelection();
+  }
+
+  // --- Blink ---
+  function scrollToCursor() {
+    const cx = xFromCol(lines[cursorLine], cursorCol);
+    const cy = MARGIN_TOP + cursorLine * LINE_HEIGHT;
+    const pad = LINE_HEIGHT;
+    // 縦スクロール
+    if (cy - pad < wrapper.scrollTop) wrapper.scrollTop = Math.max(0, cy - pad);
+    else if (cy + LINE_HEIGHT + pad > wrapper.scrollTop + wrapper.clientHeight)
+      wrapper.scrollTop = cy + LINE_HEIGHT + pad - wrapper.clientHeight;
+    // 横スクロール
+    if (cx - pad < wrapper.scrollLeft) wrapper.scrollLeft = Math.max(0, cx - pad);
+    else if (cx + pad > wrapper.scrollLeft + wrapper.clientWidth)
+      wrapper.scrollLeft = cx + pad - wrapper.clientWidth;
+  }
+
+  function resetBlink() {
+    cursorVisible = true;
+    clearInterval(cursorTimer);
+    cursorTimer = setInterval(() => { cursorVisible = !cursorVisible; render(); }, 530);
+  }
+
+  // --- Focus ---
+  function setFocus(v) {
+    focused = v;
+    if (v) { trap.focus(); focusPrompt.classList.add('hidden'); resetBlink(); }
+    else { clearInterval(cursorTimer); cursorVisible = false; focusPrompt.classList.remove('hidden'); }
+    render();
+  }
+
+  // --- Mouse ---
+  function canvasCoords(e) {
+    const wr = wrapper.getBoundingClientRect();
+    // wrapperの左上を基準にクリック位置を求め、スクロール量を加算
+    const scaleX = canvas.width  / canvas.offsetWidth;
+    const scaleY = canvas.height / canvas.offsetHeight;
+    return {
+      x: (e.clientX - wr.left + wrapper.scrollLeft) * scaleX,
+      y: (e.clientY - wr.top  + wrapper.scrollTop)  * scaleY
+    };
+  }
+
+  wrapper.addEventListener('mousedown', (e) => {
+    e.preventDefault(); // テキスト選択のデフォルト動作を抑制
+    const {x, y} = canvasCoords(e);
+    const li = lineFromY(y), col = colFromX(lines[li], x);
+
+    const now = Date.now();
+    clickCount = (now - lastClickTime < 400) ? clickCount + 1 : 1;
+    lastClickTime = now;
+
+    if (clickCount === 2) {
+      // ダブルクリック：単語選択
+      const t = lines[li]; let s = col, en = col;
+      while (s > 0 && /\S/.test(t[s-1])) s--;
+      while (en < t.length && /\S/.test(t[en])) en++;
+      selStart = {line: li, col: s}; selEnd = {line: li, col: en};
+      cursorLine = li; cursorCol = en;
+    } else if (clickCount === 3) {
+      // トリプルクリック：行選択
+      selStart = {line: li, col: 0}; selEnd = {line: li, col: lines[li].length};
+      cursorLine = li; cursorCol = lines[li].length;
+    } else {
+      // シングル：カーソル移動 & ドラッグ選択開始
+      cursorLine = li; cursorCol = col;
+      selStart = {line: li, col}; selEnd = {line: li, col};
+    }
+
+    dragging = clickCount === 1; // シングルのみドラッグ有効
+    setFocus(true); render();
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const {x, y} = canvasCoords(e);
+    const li = lineFromY(y), col = colFromX(lines[li], x);
+    selEnd = {line: li, col}; cursorLine = li; cursorCol = col; render();
+  });
+
+  window.addEventListener('mouseup', (e) => {
+    if (dragging) {
+      // ドラッグ範囲が0なら選択解除
+      if (selStart && selEnd) {
+        const [s, en] = normSel();
+        if (s.line === en.line && s.col === en.col) clearSelection();
+      }
+      dragging = false;
+      render();
+    }
+  });
+
+  // フォーカス解除（エディタ外クリック）
+  window.addEventListener('mousedown', (e) => {
+    if (!wrapper.contains(e.target) && !toolbar.contains(e.target)) setFocus(false);
+  });
+
+  // --- IME Composition ---
+  trap.addEventListener('compositionstart', () => {
+    isComposing = true;
+    compositionText = '';
+    render();
+  });
+
+  trap.addEventListener('compositionupdate', (e) => {
+    compositionText = e.data || '';
+    render();
+  });
+
+  trap.addEventListener('compositionend', (e) => {
+    isComposing = false;
+    compositionText = '';
+    trap.value = '';
+    const val = e.data || '';
+    if (val) {
+      if (selStart && selEnd) deleteSel();
+      lines[cursorLine] = lines[cursorLine].substring(0, cursorCol) + val + lines[cursorLine].substring(cursorCol);
+      cursorCol += val.length;
+      clearSelection(); saveHistory(); resizeCanvas(); updateStats(); resetBlink(); scrollToCursor();
+    } else {
+      render();
+    }
+  });
+
+  // --- Keyboard ---
+  trap.addEventListener('keydown', (e) => {
+    // IME変換中はキー操作を無視
+    if (isComposing) return;
+
+    resetBlink();
+
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === 'z') { e.preventDefault(); undo(); return; }
+      if (e.key === 'a') {
+        e.preventDefault();
+        selStart = {line: 0, col: 0};
+        const L = lines.length - 1;
+        selEnd = {line: L, col: lines[L].length};
+        cursorLine = L; cursorCol = lines[L].length;
+        render(); return;
+      }
+      if (e.key === 'c') { const t = getSelectedText(); if (t) navigator.clipboard?.writeText(t).catch(() => {}); return; }
+      if (e.key === 'x') {
+        const t = getSelectedText();
+        if (t) { navigator.clipboard?.writeText(t).catch(() => {}); deleteSel(); saveHistory(); render(); updateStats(); }
+        return;
+      }
+      if (e.key === 'v') return;
+    }
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (selStart && selEnd) deleteSel();
+      const before = lines[cursorLine].substring(0, cursorCol);
+      const after = lines[cursorLine].substring(cursorCol);
+      lines[cursorLine] = before; lines.splice(cursorLine + 1, 0, after);
+      cursorLine++; cursorCol = 0; clearSelection(); saveHistory();
+    } else if (e.key === 'Backspace') {
+      e.preventDefault();
+      if (selStart && selEnd) deleteSel();
+      else if (cursorCol > 0) { lines[cursorLine] = lines[cursorLine].substring(0, cursorCol - 1) + lines[cursorLine].substring(cursorCol); cursorCol--; }
+      else if (cursorLine > 0) { const pl = lines[cursorLine - 1].length; lines[cursorLine - 1] += lines[cursorLine]; lines.splice(cursorLine, 1); cursorLine--; cursorCol = pl; }
+      clearSelection(); saveHistory();
+    } else if (e.key === 'Delete') {
+      e.preventDefault();
+      if (selStart && selEnd) deleteSel();
+      else if (cursorCol < lines[cursorLine].length) { lines[cursorLine] = lines[cursorLine].substring(0, cursorCol) + lines[cursorLine].substring(cursorCol + 1); }
+      else if (cursorLine < lines.length - 1) { lines[cursorLine] += lines[cursorLine + 1]; lines.splice(cursorLine + 1, 1); }
+      clearSelection(); saveHistory();
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      if (!e.shiftKey) clearSelection();
+      const [pL, pC] = [cursorLine, cursorCol];
+      if (cursorCol > 0) cursorCol--;
+      else if (cursorLine > 0) { cursorLine--; cursorCol = lines[cursorLine].length; }
+      if (e.shiftKey) { if (!selStart) selStart = {line: pL, col: pC}; selEnd = {line: cursorLine, col: cursorCol}; }
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (!e.shiftKey) clearSelection();
+      const [pL, pC] = [cursorLine, cursorCol];
+      if (cursorCol < lines[cursorLine].length) cursorCol++;
+      else if (cursorLine < lines.length - 1) { cursorLine++; cursorCol = 0; }
+      if (e.shiftKey) { if (!selStart) selStart = {line: pL, col: pC}; selEnd = {line: cursorLine, col: cursorCol}; }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!e.shiftKey) clearSelection();
+      const [pL, pC] = [cursorLine, cursorCol];
+      if (cursorLine > 0) { cursorLine--; cursorCol = Math.min(cursorCol, lines[cursorLine].length); }
+      if (e.shiftKey) { if (!selStart) selStart = {line: pL, col: pC}; selEnd = {line: cursorLine, col: cursorCol}; }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!e.shiftKey) clearSelection();
+      const [pL, pC] = [cursorLine, cursorCol];
+      if (cursorLine < lines.length - 1) { cursorLine++; cursorCol = Math.min(cursorCol, lines[cursorLine].length); }
+      if (e.shiftKey) { if (!selStart) selStart = {line: pL, col: pC}; selEnd = {line: cursorLine, col: cursorCol}; }
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      if (!e.shiftKey) clearSelection();
+      const prev = {line: cursorLine, col: cursorCol}; cursorCol = 0;
+      if (e.shiftKey) { if (!selStart) selStart = prev; selEnd = {line: cursorLine, col: 0}; }
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      if (!e.shiftKey) clearSelection();
+      const prev = {line: cursorLine, col: cursorCol}; cursorCol = lines[cursorLine].length;
+      if (e.shiftKey) { if (!selStart) selStart = prev; selEnd = {line: cursorLine, col: cursorCol}; }
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      if (selStart && selEnd) deleteSel();
+      const tab = '    ';
+      lines[cursorLine] = lines[cursorLine].substring(0, cursorCol) + tab + lines[cursorLine].substring(cursorCol);
+      cursorCol += tab.length; clearSelection(); saveHistory();
+    }
+
+    render(); updateStats();
+  });
+
+  trap.addEventListener('input', () => {
+    // IME変換中はcompositionendで処理するのでスキップ
+    if (isComposing) return;
+    const val = trap.value; if (!val) return; trap.value = '';
+    if (selStart && selEnd) deleteSel();
+    lines[cursorLine] = lines[cursorLine].substring(0, cursorCol) + val + lines[cursorLine].substring(cursorCol);
+    cursorCol += val.length;
+    clearSelection(); saveHistory(); resizeCanvas(); updateStats(); resetBlink(); scrollToCursor();
+  });
+
+  function handlePaste(text) {
+    if (!text) return;
+    if (selStart && selEnd) deleteSel();
+    const pl = text.split('\n');
+    const before = lines[cursorLine].substring(0, cursorCol);
+    const after = lines[cursorLine].substring(cursorCol);
+    if (pl.length === 1) {
+      lines[cursorLine] = before + text + after; cursorCol += text.length;
+    } else {
+      lines[cursorLine] = before + pl[0];
+      for (let i = 1; i < pl.length - 1; i++) lines.splice(cursorLine + i, 0, pl[i]);
+      lines.splice(cursorLine + pl.length - 1, 0, pl[pl.length - 1] + after);
+      cursorLine += pl.length - 1; cursorCol = pl[pl.length - 1].length;
+    }
+    clearSelection(); saveHistory(); render(); updateStats();
+  }
+
+  wrapper.addEventListener('paste', (e) => { e.preventDefault(); handlePaste((e.clipboardData || window.clipboardData).getData('text')); });
+  document.addEventListener('paste', (e) => { if (focused) { e.preventDefault(); handlePaste((e.clipboardData || window.clipboardData).getData('text')); } });
+
+  // --- Stats ---
+  function updateStats() { /* removed */ }
+
+  updateStats();
+  render();
+
+  // ═══════════════════════════════════════════════
+  //  オーバーレイ canvas — 横線描画
+  // ═══════════════════════════════════════════════
+  // オーバーレイをテキストcanvasに同期リサイズ
+  function syncOverlay() {
+    overlay.width  = canvas.width;
+    overlay.height = canvas.height;
+    redrawOverlay();
+  }
+
+  function redrawOverlay() {
+    octx.clearRect(0, 0, overlay.width, overlay.height);
+    strokes.forEach(s => paintStroke(s));
+    drawConnectors();
+    // 斜線を描画
+    diagStrokes.forEach(d => {
+      octx.save();
+      octx.strokeStyle = d.color;
+      octx.lineWidth   = d.lw;
+      octx.lineCap     = 'round';
+      const dash = Math.max(1, d.lw * 0.8);
+      const gap  = Math.max(2, d.lw * 0.9);
+      if (d.dashed) octx.lineCap = 'butt';
+      octx.setLineDash(d.dashed ? [dash, gap] : []);
+      octx.beginPath();
+      octx.moveTo(d.x1, d.y1);
+      octx.lineTo(d.x2, d.y2);
+      octx.stroke();
+      octx.setLineDash([]);
+      octx.restore();
+      // Ctrl押下時: 終点にアローヘッド
+      if (d.arrow) {
+        const baseAngle = Math.atan2(d.y2 - d.y1, d.x2 - d.x1);
+        drawArrowhead(d.x2, d.y2, baseAngle + Math.PI * 0.25, d.lw, d.color);
+      }
+    });
+  }
+
+  // arrowAngle: 矢印を伸ばす方向（呼び出し側で決定済み）
+  // x,y: 横線の右端（斜め線はここからスタート）
+  function drawArrowhead(x, y, arrowAngle, lw, color) {
+    const dropAngle = arrowAngle;
+    const tailLen   = lw * 1 + 5;   // 斜め線の長さ（横線右端から計測）
+    const headGap   = lw * 0.2;     // 斜め線終点からアローヘッド根元までの隙間
+    const headSize  = lw * 1.8 + 5; // アローヘッドの奥行き（大きめ）
+    const wingHalf  = headSize * 0.35; // 笠の半開き（シャープ）
+
+    // 斜め線: 横線右端(x,y) → 終点(ex,ey)
+    const ex = x  + Math.cos(dropAngle) * tailLen;
+    const ey = y  + Math.sin(dropAngle) * tailLen;
+
+    // アローヘッド根元: 終点から headGap だけ先
+    const hx = ex + Math.cos(dropAngle) * headGap;
+    const hy = ey + Math.sin(dropAngle) * headGap;
+
+    octx.save();
+    octx.strokeStyle = color;
+    octx.fillStyle   = color;
+
+    // 斜め線（横線右端 → 終点）
+    octx.lineWidth = lw;
+    octx.lineCap   = 'round';
+    octx.beginPath();
+    octx.moveTo(x,  y);
+    octx.lineTo(ex, ey);
+    octx.stroke();
+
+    // アローヘッド三角形（根元:hx,hy、先端はその先headSizeぶん）
+    octx.translate(hx, hy);
+    octx.rotate(dropAngle);
+    octx.beginPath();
+    octx.moveTo(headSize, 0);    // 先端（頂点）
+    octx.lineTo(0, -wingHalf);   // 根元 上
+    octx.lineTo(0,  wingHalf);   // 根元 下
+    octx.closePath();
+    octx.fill();
+    octx.restore();
+  }
+
+  function paintStroke(stroke) {
+    octx.save();
+    octx.strokeStyle = stroke.color;
+    octx.lineWidth   = stroke.lw;
+    octx.lineCap     = 'round';
+    const dash = Math.max(1, stroke.lw * 0.8);
+    const gap  = Math.max(2, stroke.lw * 0.9);
+    if (stroke.dashed) octx.lineCap = 'butt';
+    octx.setLineDash(stroke.dashed ? [dash, gap] : []);
+    stroke.segments.forEach(seg => {
+      // 横線は常にseg.x2まで描く（縦線コネクタとの接続を維持）
+      octx.beginPath();
+      octx.moveTo(seg.x1, seg.y);
+      octx.lineTo(seg.x2, seg.y);
+      octx.stroke();
+
+      if (stroke.altArrow) {
+        // Optionキー: 真横に伸びる矢印
+        drawArrowhead(seg.x2, seg.y, 0, stroke.lw, stroke.color);
+      } else if (stroke.arrow) {
+        // Ctrl/Commandキー: 斜め上／下に伸びる矢印
+        const arrowAngle = (stroke.offset < 0) ? -Math.PI * 0.25 : Math.PI * 0.25;
+        drawArrowhead(seg.x2, seg.y, arrowAngle, stroke.lw, stroke.color);
+      }
+    });
+    octx.setLineDash([]);
+    octx.restore();
+  }
+
+  // 同一行に複数の横線があり、x座標が隣接している場合に
+  // 前の線の右端 → 次の線の左端 を縦線でつなぐ
+  function drawConnectors() {
+    const byLine = new Map();
+    strokes.forEach(stroke => {
+      stroke.segments.forEach(seg => {
+        const key = seg.lineIndex;
+        if (!byLine.has(key)) byLine.set(key, []);
+        byLine.get(key).push({ ...seg, color: stroke.color, lw: stroke.lw, dashed: stroke.dashed });
+      });
+    });
+
+    byLine.forEach(segsOnLine => {
+      if (segsOnLine.length < 2) return;
+      segsOnLine.sort((a, b) => a.x1 - b.x1 || a.y - b.y);
+
+      for (let i = 0; i < segsOnLine.length - 1; i++) {
+        const a = segsOnLine[i];
+        const b = segsOnLine[i + 1];
+
+        if (a.y === b.y) continue;
+
+        const gap = Math.abs(b.x1 - a.x2);
+        const bStartsInsideA = b.x1 >= a.x1 - 4 && b.x1 <= a.x2 + 4;
+        if (gap <= 4 || bStartsInsideA) {
+          const lw   = 2;
+          const isDashed = true; // 縦線は常に点線
+          const dash = Math.max(1, lw * 0.8);
+          const cgap = Math.max(2, lw * 0.9);
+          octx.save();
+          octx.strokeStyle = a.color;
+          octx.lineWidth   = lw;
+          octx.lineCap     = isDashed ? 'butt' : 'round';
+          octx.setLineDash(isDashed ? [dash, cgap] : []);
+          octx.beginPath();
+          octx.moveTo(a.x2, a.y);
+          octx.lineTo(b.x1, b.y);
+          octx.stroke();
+          octx.setLineDash([]);
+          octx.restore();
+        }
+      }
+    });
+  }
+
+  // 選択範囲から行ごとのセグメントを計算
+  function buildSegments(offset) {
+    if (!selStart || !selEnd) return null;
+    const [sS, sE] = normSel();
+    const segs = [];
+
+    for (let li = sS.line; li <= sE.line; li++) {
+      const txt = lines[li];
+      let x1, x2;
+      if (li === sS.line && li === sE.line) {
+        x1 = xFromCol(txt, sS.col);
+        x2 = xFromCol(txt, sE.col);
+      } else if (li === sS.line) {
+        x1 = xFromCol(txt, sS.col);
+        x2 = xFromCol(txt, txt.length) + 4;
+      } else if (li === sE.line) {
+        x1 = MARGIN_LEFT;
+        x2 = xFromCol(txt, sE.col);
+      } else {
+        x1 = MARGIN_LEFT;
+        x2 = xFromCol(txt, txt.length) + 4;
+      }
+      if (x2 <= x1 + 1) continue;
+      const y = MARGIN_TOP + li * LINE_HEIGHT + FONT_SIZE + Math.round(offset);
+      segs.push({ x1, x2, y, lineIndex: li });
+    }
+    return segs.length ? segs : null;
+  }
+
+  // ボタンイベント
+  document.querySelectorAll('.line-btn').forEach(btn => {
+    // mousedownで修飾キーを確実にキャプチャ（clickより先に発火）
+    btn.addEventListener('mousedown', e => {
+      e.preventDefault();
+      window._shiftHeld = e.shiftKey;
+      window._altHeld   = e.altKey;
+      window._ctrlHeld  = e.ctrlKey || e.metaKey;
+    });
+
+    btn.addEventListener('click', () => {
+      const pos = btn.dataset.pos;
+
+      if (pos === 'diag') {
+        // 矢印トグルがONなら矢印は描画せずトグル解除のみ
+        if (modeArrow) {
+          modeArrow = false;
+          toggleArrow.classList.remove('active');
+          return;
+        }
+        const flash = () => {
+          btn.style.borderColor = 'rgba(255,80,80,0.7)';
+          setTimeout(() => btn.style.borderColor = '', 500);
+        };
+
+        // 選択なし、または行をまたぐ選択は不可
+        if (!selStart || !selEnd) { flash(); return; }
+        const [sS, sE] = normSel();
+        if (sS.line !== sE.line) { flash(); return; }
+
+        const li = sS.line;
+        const selX1 = Math.min(xFromCol(lines[li], sS.col), xFromCol(lines[li], sE.col));
+        const selX2 = Math.max(xFromCol(lines[li], sS.col), xFromCol(lines[li], sE.col));
+
+        // 同一行のセグメントから直前・直後を探す
+        let prevSeg = null, nextSeg = null;
+
+        strokes.forEach(stroke => {
+          stroke.segments.forEach(seg => {
+            if (seg.lineIndex !== li) return;
+            // 直前：右端が選択左端以下で最も近いもの
+            if (seg.x2 <= selX1 + 4) {
+              if (!prevSeg || seg.x2 > prevSeg.x2) prevSeg = seg;
+            }
+            // 直後：左端が選択右端以上で最も近いもの
+            if (seg.x1 >= selX2 - 4) {
+              if (!nextSeg || seg.x1 < nextSeg.x1) nextSeg = seg;
+            }
+          });
+        });
+
+        if (!prevSeg || !nextSeg) { flash(); return; }
+
+        // 斜線の範囲（prevSeg.x2 〜 nextSeg.x1）に重なる既存の線を消去
+        eraseInRange([{ lineIndex: li, x1: prevSeg.x2, x2: nextSeg.x1 }]);
+
+        diagStrokes.push({
+          x1: prevSeg.x2, y1: prevSeg.y,
+          x2: nextSeg.x1, y2: nextSeg.y,
+          color: LINE_COLOR, lw: resolveShift() ? 8 : 6,
+          arrow: resolveCtrl(),
+          dashed: !resolveShift(),
+          lineIndex: li,       // 斜線が属する行
+          segX1: prevSeg.x2,   // 直前横線の右端x
+          segX2: nextSeg.x1,   // 直後横線の左端x
+        });
+        redrawOverlay();
+        return;
+      }
+
+      if (pos === 'erase') {
+        if (!selStart || !selEnd) {
+          btn.style.borderColor = 'rgba(255,80,80,0.7)';
+          setTimeout(() => btn.style.borderColor = '', 500);
+          return;
+        }
+        const [sS, sE] = normSel();
+
+        // 選択範囲の行・x区間を取得
+        function getSelX(li) {
+          if (li < sS.line || li > sE.line) return null;
+          let selX1, selX2;
+          if (li === sS.line && li === sE.line) {
+            selX1 = xFromCol(lines[li], sS.col);
+            selX2 = xFromCol(lines[li], sE.col);
+          } else if (li === sS.line) {
+            selX1 = xFromCol(lines[li], sS.col);
+            selX2 = Infinity;
+          } else if (li === sE.line) {
+            selX1 = MARGIN_LEFT;
+            selX2 = xFromCol(lines[li], sE.col);
+          } else {
+            selX1 = MARGIN_LEFT;
+            selX2 = Infinity;
+          }
+          if (selX1 > selX2) [selX1, selX2] = [selX2, selX1];
+          return { selX1, selX2 };
+        }
+
+        strokes = strokes.map(stroke => {
+          const newSegs = [];
+          stroke.segments.forEach(seg => {
+            const sx = getSelX(seg.lineIndex);
+            if (!sx) { newSegs.push(seg); return; }
+            const { selX1, selX2 } = sx;
+            if (seg.x2 <= selX1 || seg.x1 >= selX2) { newSegs.push(seg); return; }
+            if (seg.x1 < selX1) newSegs.push({ ...seg, x2: selX1 });
+            if (seg.x2 > selX2) newSegs.push({ ...seg, x1: selX2 });
+          });
+          return { ...stroke, segments: newSegs };
+        }).filter(stroke => stroke.segments.length > 0);
+
+        // 斜線の消去：lineIndexとx範囲で判定（y座標逆算より確実）
+        diagStrokes = diagStrokes.filter(d => {
+          // lineIndexが未保存の古いデータはy座標から逆算
+          const lineIdx = (d.lineIndex !== undefined)
+            ? d.lineIndex
+            : Math.round((d.y1 - MARGIN_TOP) / LINE_HEIGHT);
+          const sx = getSelX(lineIdx);
+          if (!sx) return true; // 選択範囲外の行 → 残す
+          // 斜線のx範囲（segX1〜segX2）が選択範囲と重なれば消去
+          const dX1 = d.segX1 !== undefined ? d.segX1 : Math.min(d.x1, d.x2);
+          const dX2 = d.segX2 !== undefined ? d.segX2 : Math.max(d.x1, d.x2);
+          const overlaps = dX1 < sx.selX2 + 4 && dX2 > sx.selX1 - 4;
+          return !overlaps; // 重なっていれば消去
+        });
+
+        redrawOverlay();
+        return;
+      }
+
+      const style = LINE_STYLES[pos];
+      if (!style) return;
+
+      const segs = buildSegments(style.offset);
+      if (!segs) {
+        btn.style.borderColor = 'rgba(255,80,80,0.7)';
+        setTimeout(() => btn.style.borderColor = '', 500);
+        return;
+      }
+
+      const lw = resolveShift() ? 8 : style.lw;  // 強調:8px 通常:6px
+      const stroke = { segments: segs, color: style.color, lw, arrow: resolveCtrl(), altArrow: resolveAlt(), offset: style.offset, dashed: !resolveShift() };
+      eraseInRange(segs);
+      strokes.push(stroke);
+      // 横線描画後に矢印トグルを解除
+      modeArrow = false;
+      toggleArrow.classList.remove('active');
+      redrawOverlay();
+    });
+  });
+
+  // ── 描画前消去：新しい線の範囲に重なる既存の線を消去 ──
+  function eraseInRange(segs) {
+    segs.forEach(newSeg => {
+      const li   = newSeg.lineIndex;
+      const nx1  = newSeg.x1;
+      const nx2  = newSeg.x2;
+
+      // 横線セグメントを部分消去（eraseボタンと同じロジック）
+      strokes = strokes.map(stroke => {
+        const newSegs = [];
+        stroke.segments.forEach(seg => {
+          if (seg.lineIndex !== li) { newSegs.push(seg); return; }
+          if (seg.x2 <= nx1 || seg.x1 >= nx2) { newSegs.push(seg); return; }
+          if (seg.x1 < nx1) newSegs.push({ ...seg, x2: nx1 });
+          if (seg.x2 > nx2) newSegs.push({ ...seg, x1: nx2 });
+        });
+        return { ...stroke, segments: newSegs };
+      }).filter(s => s.segments.length > 0);
+
+      // 斜線：両端点のx範囲が重なる同一行の斜線を削除
+      diagStrokes = diagStrokes.filter(d => {
+        const dLi = d.lineIndex !== undefined ? d.lineIndex : -1;
+        if (dLi !== li) return true;
+        const dX1 = d.segX1 !== undefined ? d.segX1 : Math.min(d.x1, d.x2);
+        const dX2 = d.segX2 !== undefined ? d.segX2 : Math.max(d.x1, d.x2);
+        return !(dX1 < nx2 && dX2 > nx1);
+      });
+    });
+  }
+
+  // リサイズ時に同期
+  syncOverlay();
+
+  // ── 位置設定ダイアログ ──────────────────────────
+  const posDialogOverlay = document.getElementById('pos-dialog-overlay');
+  const btnPosSettings   = document.getElementById('btn-pos-settings');
+
+  const POS_DEFAULTS = {
+    top:    -52,
+    upper:  -33,
+    middle:   3,
+    lower:   30,
+    bottom:  52,
+  };
+
+  const posKeys = ['top', 'upper', 'middle', 'lower', 'bottom'];
+
+  const LS_KEY = 'lpe-line-positions';
+
+  function savePosToStorage() {
+    const data = {};
+    posKeys.forEach(key => { data[key] = LINE_STYLES[key].offset; });
+    data._lineHeight = LINE_HEIGHT;
+    try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch(e) {}
+  }
+
+  function loadPosFromStorage() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      posKeys.forEach(key => {
+        if (typeof data[key] === 'number') LINE_STYLES[key].offset = data[key];
+      });
+      if (typeof data._lineHeight === 'number') {
+        LINE_HEIGHT = data._lineHeight;
+      }
+      // OFFSET_SNAPも更新
+      if (typeof OFFSET_SNAP !== 'undefined') {
+        OFFSET_SNAP.forEach(s => { s.offset = LINE_STYLES[s.key].offset; });
+      }
+    } catch(e) {}
+  }
+  loadPosFromStorage();
+
+  function openPosDialog() {
+    posKeys.forEach(key => {
+      const val = LINE_STYLES[key].offset;
+      const slider = document.getElementById('pos-' + key);
+      const num    = document.getElementById('pos-' + key + '-n');
+      slider.value = val;
+      num.value    = val;
+      // slider↔number連動
+      slider.oninput = () => { num.value = parseFloat(slider.value).toFixed(2); };
+      num.oninput    = () => { slider.value = num.value; };
+    });
+    const lhSlider = document.getElementById('pos-lh');
+    const lhNum    = document.getElementById('pos-lh-n');
+    lhSlider.value = LINE_HEIGHT;
+    lhNum.value    = LINE_HEIGHT;
+    lhSlider.oninput = () => { lhNum.value = Math.round(lhSlider.value); };
+    lhNum.oninput    = () => { lhSlider.value = lhNum.value; };
+    posDialogOverlay.classList.add('open');
+  }
+
+  btnPosSettings.addEventListener('click', openPosDialog);
+
+  document.getElementById('pos-cancel').addEventListener('click', () => {
+    posDialogOverlay.classList.remove('open');
+  });
+
+  document.getElementById('pos-reset').addEventListener('click', () => {
+    posKeys.forEach(key => {
+      const v = POS_DEFAULTS[key];
+      document.getElementById('pos-' + key).value       = v;
+      document.getElementById('pos-' + key + '-n').value = v;
+    });
+    document.getElementById('pos-lh').value   = 115;
+    document.getElementById('pos-lh-n').value = 115;
+  });
+
+  document.getElementById('pos-apply').addEventListener('click', () => {
+    posKeys.forEach(key => {
+      const v = parseFloat(document.getElementById('pos-' + key + '-n').value);
+      if (!isNaN(v)) LINE_STYLES[key].offset = v;
+    });
+    // OFFSET_SNAPも更新
+    OFFSET_SNAP.forEach(s => { s.offset = LINE_STYLES[s.key].offset; });
+    const lhVal = parseInt(document.getElementById('pos-lh-n').value);
+    if (!isNaN(lhVal) && lhVal >= 20 && lhVal <= 300) {
+      LINE_HEIGHT = lhVal;
+    }
+    savePosToStorage();
+    posDialogOverlay.classList.remove('open');
+    resizeCanvas();
+    redrawOverlay();
+  });
+
+  // オーバーレイクリックで閉じる
+  posDialogOverlay.addEventListener('click', (e) => {
+    if (e.target === posDialogOverlay) posDialogOverlay.classList.remove('open');
+  });
+
+  // ── 保存 / 読み込み ──────────────────────────
+  const btnSave     = document.getElementById('btn-save');
+  const btnLoad     = document.getElementById('btn-load');
+  const btnPng      = document.getElementById('btn-png');
+  const fileInput   = document.getElementById('file-input');
+  const saveloadMsg = document.getElementById('saveload-msg');
+
+  function showMsg(text) {
+    saveloadMsg.textContent = text;
+    saveloadMsg.classList.add('visible');
+    setTimeout(() => saveloadMsg.classList.remove('visible'), 2000);
+  }
+
+  btnPng.addEventListener('click', () => {
+    // テキストcanvasとオーバーレイcanvasを合成して1枚のPNGに
+    const merged = document.createElement('canvas');
+    merged.width  = canvas.width;
+    merged.height = canvas.height;
+    const mctx = merged.getContext('2d');
+    mctx.drawImage(canvas,  0, 0);
+    mctx.drawImage(overlay, 0, 0);
+    const dataUri = merged.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href     = dataUri;
+    a.download = 'letterpress-' + new Date().toISOString().slice(0,19).replace(/[:T]/g,'-') + '.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showMsg('PNG保存しました');
+  });
+
+  btnSave.addEventListener('click', () => {
+    const data = {
+      version: 1,
+      font: FONT_FACE,
+      fontSize: FONT_SIZE,
+      lines,
+      strokes,
+      diagStrokes
+    };
+    const json = JSON.stringify(data, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(json);
+    const a    = document.createElement('a');
+    a.href     = dataUri;
+    a.download = 'letterpress-' + new Date().toISOString().slice(0,19).replace(/[:T]/g,'-') + '.lpe';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showMsg('保存しました');
+  });
+
+  btnLoad.addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    fileInput.value = '';
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (!data.version || !Array.isArray(data.lines)) throw new Error('invalid');
+
+        // テキスト復元
+        lines       = data.lines;
+        cursorLine  = 0;
+        cursorCol   = 0;
+        clearSelection();
+
+        // フォント復元
+        if (data.font) {
+          FONT_FACE = data.font;
+          // selectボックスも同期
+          for (const opt of fontSelect.options) {
+            if (opt.value === data.font) { opt.selected = true; break; }
+          }
+        }
+        if (data.fontSize) {
+          FONT_SIZE   = data.fontSize;
+          LINE_HEIGHT = computeLH();
+          sizeDisplay.textContent = FONT_SIZE;
+        }
+
+        // 線復元
+        strokes     = data.strokes     || [];
+        diagStrokes = data.diagStrokes || [];
+
+        render();
+        syncOverlay();
+        updateStats();
+        showMsg('読み込みました');
+      } catch(err) {
+        showMsg('読み込みエラー');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  // ── モードトグル ──────────────────────────
+  const toggleNormal = document.getElementById('toggle-normal');
+  const toggleStrong = document.getElementById('toggle-strong');
+  const toggleArrow  = document.getElementById('toggle-arrow');
+
+  // トグル状態（キーボード修飾キーより優先度低い：キー押下時は上書き）
+  let modeStrong = false;  // true=強調(実線・太), false=通常(点線)
+  let modeArrow  = false;  // true=矢印付き
+
+  // ── 描画モード ──────────────────────────
+  const toggleDrawMode = document.getElementById('toggle-draw-mode');
+  canvas.style.cursor = 'text'; // 初期状態はキャレット
+  let drawMode = false;         // 描画モードON/OFF
+  let drawDragging = false;     // 描画ドラッグ中か
+  let drawStartX = 0;           // ドラッグ開始x
+  let drawCurrentX = 0;         // 現在x
+  let drawLineIndex = 0;        // 対象行
+  let drawOffset = 0;           // スナップしたoffset(px)
+  let drawPreviewSeg = null;    // プレビュー用セグメント
+
+  // y座標から最も近いyRatioにスナップ
+  const OFFSET_SNAP = [
+    { key: 'top',    offset: LINE_STYLES.top.offset },
+    { key: 'upper',  offset: LINE_STYLES.upper.offset },
+    { key: 'middle', offset: LINE_STYLES.middle.offset },
+    { key: 'lower',  offset: LINE_STYLES.lower.offset },
+    { key: 'bottom', offset: LINE_STYLES.bottom.offset },
+  ];
+  function snapOffset(y, li) {
+    const baselineY = MARGIN_TOP + li * LINE_HEIGHT + FONT_SIZE;
+    const clickOffset = y - baselineY;
+    let best = OFFSET_SNAP[0], bestDist = Infinity;
+    OFFSET_SNAP.forEach(s => {
+      const d = Math.abs(s.offset - clickOffset);
+      if (d < bestDist) { bestDist = d; best = s; }
+    });
+    return best;
+  }
+
+  toggleDrawMode.addEventListener('click', () => {
+    drawMode = !drawMode;
+    toggleDrawMode.classList.toggle('active', drawMode);
+    const cur = drawMode ? 'default' : 'text';
+    canvas.style.cursor  = cur;
+    wrapper.style.cursor = cur;
+    // focus-promptなどwrapper内の全子要素にも適用
+    wrapper.querySelectorAll('*').forEach(el => { el.style.cursor = cur; });
+  });
+
+  // 描画モード用マウスイベント（wrapperに追加）
+  wrapper.addEventListener('mousedown', (e) => {
+    if (!drawMode) return;
+    // 描画モード中は常にテキスト選択を抑制
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    const {x, y} = canvasCoords(e);
+    // テキスト行の範囲内でのみドラッグ開始
+    // 上端offsetが負なので、その分だけ上に広げる
+    const topOffset    = Math.min(...Object.values(LINE_STYLES).map(s => s.offset));
+    const bottomOffset = Math.max(...Object.values(LINE_STYLES).map(s => s.offset));
+    const topY    = MARGIN_TOP + FONT_SIZE + topOffset - 10;
+    const bottomY = MARGIN_TOP + lines.length * LINE_HEIGHT + FONT_SIZE + bottomOffset + 10;
+    if (y < topY || y > bottomY) return;
+    const li = lineFromY(y);
+    const snapped = snapOffset(y, li);
+    drawDragging  = true;
+    drawStartX    = x;
+    drawCurrentX  = x;
+    drawLineIndex = li;
+    drawOffset    = snapped.offset;
+    drawPreviewSeg = null;
+  }, true); // capture=trueで既存handlerより先に処理
+
+  window.addEventListener('mousemove', (e) => {
+    if (!drawDragging || !drawMode) return;
+    const {x} = canvasCoords(e);
+    drawCurrentX = x;
+    // プレビュー：オーバーレイに一時描画
+    const li = drawLineIndex;
+    const segY = MARGIN_TOP + li * LINE_HEIGHT + FONT_SIZE + Math.round(drawOffset);
+    const x1 = Math.min(drawStartX, drawCurrentX);
+    const x2 = Math.max(drawStartX, drawCurrentX);
+    // コル境界にスナップ
+    const col1 = colFromX(lines[li], x1);
+    const col2 = colFromX(lines[li], x2);
+    const sx1 = xFromCol(lines[li], col1);
+    const sx2 = xFromCol(lines[li], Math.max(col1 + 1, col2));
+    drawPreviewSeg = { x1: sx1, x2: sx2, y: segY, lineIndex: li };
+    // プレビュー描画
+    redrawOverlay();
+    const lw = resolveShift() ? 8 : LINE_STYLES.top.lw;
+    octx.save();
+    octx.strokeStyle = 'rgba(200,30,30,0.5)';
+    octx.lineWidth = lw;
+    octx.lineCap = 'round';
+    octx.setLineDash(resolveShift() ? [] : [Math.max(1, lw * 0.8), Math.max(2, lw * 0.9)]);
+    octx.beginPath();
+    octx.moveTo(sx1, segY);
+    octx.lineTo(sx2, segY);
+    octx.stroke();
+    octx.setLineDash([]);
+    octx.restore();
+  });
+
+  window.addEventListener('mouseup', (e) => {
+    if (!drawDragging || !drawMode) return;
+    drawDragging = false;
+    if (!drawPreviewSeg) { redrawOverlay(); return; }
+    const { x1, x2, y, lineIndex: li } = drawPreviewSeg;
+    if (x2 - x1 < 4) { redrawOverlay(); return; } // 短すぎる場合は無視
+    const style = LINE_STYLES[OFFSET_SNAP.find(s => s.offset === drawOffset)?.key || 'middle'];
+    const lw = resolveShift() ? 8 : style.lw;
+    const seg = { x1, x2, y, lineIndex: li };
+    const stroke = {
+      segments: [seg],
+      color: LINE_COLOR,
+      lw,
+      arrow: resolveCtrl(),
+      altArrow: resolveAlt(),
+      offset: drawOffset,
+      dashed: !resolveShift()
+    };
+    eraseInRange([seg]);
+    strokes.push(stroke);
+    drawPreviewSeg = null;
+    // 横線描画後に矢印トグルを解除
+    modeArrow = false;
+    toggleArrow.classList.remove('active');
+    redrawOverlay();
+  });
+
+  toggleNormal.addEventListener('click', () => {
+    modeStrong = false;
+    toggleNormal.classList.add('active');
+    toggleStrong.classList.remove('active');
+  });
+
+  toggleStrong.addEventListener('click', () => {
+    modeStrong = true;
+    toggleStrong.classList.add('active');
+    toggleNormal.classList.remove('active');
+  });
+
+  toggleArrow.addEventListener('click', () => {
+    modeArrow = !modeArrow;
+    toggleArrow.classList.toggle('active', modeArrow);
+  });
+
+  // キーボード修飾キーが押されている場合はそちらを優先
+  function resolveShift() { return window._shiftHeld || modeStrong; }
+  function resolveCtrl()  { return window._ctrlHeld  || modeArrow;  }
+  function resolveAlt()   { return window._altHeld   || false; }
+
+  // Shiftキー状態追跡
+  window._shiftHeld = false;
+  window._ctrlHeld  = false;
+  window._altHeld   = false;
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Shift') window._shiftHeld = true;
+    // Control / Meta(Command) / Alt(Option) のいずれかでctrl扱い
+    if (e.key === 'Control' || e.key === 'Meta') window._ctrlHeld = true;
+    if (e.key === 'Alt') window._altHeld = true;
+  });
+  window.addEventListener('keyup', e => {
+    if (e.key === 'Shift') window._shiftHeld = false;
+    if (e.key === 'Control' || e.key === 'Meta') window._ctrlHeld = false;
+    if (e.key === 'Alt') window._altHeld = false;
+  });
+  // ウィンドウがフォーカスを失ったときにフラグをリセット
+  window.addEventListener('blur', () => { window._shiftHeld = false; window._ctrlHeld = false; window._altHeld = false; });
+
+})();
+</script>
+</body>
+</html>
