@@ -1867,6 +1867,93 @@
     redrawOverlay();
   });
 
+  // ── 描画モード用タッチイベント（Android/タブレット対応）──
+  function touchCoords(e) {
+    const t = e.touches[0] || e.changedTouches[0];
+    const wr = wrapper.getBoundingClientRect();
+    const scaleX = canvas.width  / canvas.offsetWidth;
+    const scaleY = canvas.height / canvas.offsetHeight;
+    return {
+      x: (t.clientX - wr.left + wrapper.scrollLeft) * scaleX,
+      y: (t.clientY - wr.top  + wrapper.scrollTop)  * scaleY
+    };
+  }
+
+  wrapper.addEventListener('touchstart', (e) => {
+    if (!drawMode) return;
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    const {x, y} = touchCoords(e);
+    const topOffset    = Math.min(...Object.values(LINE_STYLES).map(s => s.offset));
+    const bottomOffset = Math.max(...Object.values(LINE_STYLES).map(s => s.offset));
+    const topY    = MARGIN_TOP + FONT_SIZE + topOffset - 10;
+    const bottomY = MARGIN_TOP + lines.length * LINE_HEIGHT + FONT_SIZE + bottomOffset + 10;
+    if (y < topY || y > bottomY) return;
+    const li = lineFromY(y);
+    const snapped = snapOffset(y, li);
+    drawDragging  = true;
+    drawStartX    = x;
+    drawCurrentX  = x;
+    drawLineIndex = li;
+    drawOffset    = snapped.offset;
+    drawPreviewSeg = null;
+  }, { capture: true, passive: false });
+
+  window.addEventListener('touchmove', (e) => {
+    if (!drawDragging || !drawMode) return;
+    e.preventDefault();
+    const {x} = touchCoords(e);
+    drawCurrentX = x;
+    const li = drawLineIndex;
+    const segY = MARGIN_TOP + li * LINE_HEIGHT + FONT_SIZE + Math.round(drawOffset);
+    const x1 = Math.min(drawStartX, drawCurrentX);
+    const x2 = Math.max(drawStartX, drawCurrentX);
+    const col1 = colFromX(lines[li], x1);
+    const col2 = colFromX(lines[li], x2);
+    const sx1 = xFromCol(lines[li], col1);
+    const sx2 = xFromCol(lines[li], Math.max(col1 + 1, col2));
+    drawPreviewSeg = { x1: sx1, x2: sx2, y: segY, lineIndex: li };
+    redrawOverlay();
+    const lw = resolveShift() ? 8 : LINE_STYLES.top.lw;
+    octx.save();
+    octx.strokeStyle = 'rgba(200,30,30,0.5)';
+    octx.lineWidth = lw;
+    octx.lineCap = 'round';
+    octx.setLineDash(resolveShift() ? [] : [Math.max(1, lw * 0.8), Math.max(2, lw * 0.9)]);
+    octx.beginPath();
+    octx.moveTo(sx1, segY);
+    octx.lineTo(sx2, segY);
+    octx.stroke();
+    octx.setLineDash([]);
+    octx.restore();
+  }, { passive: false });
+
+  window.addEventListener('touchend', (e) => {
+    if (!drawDragging || !drawMode) return;
+    drawDragging = false;
+    if (!drawPreviewSeg) { redrawOverlay(); return; }
+    const { x1, x2, y, lineIndex: li } = drawPreviewSeg;
+    if (x2 - x1 < 4) { redrawOverlay(); return; }
+    const style = LINE_STYLES[OFFSET_SNAP.find(s => s.offset === drawOffset)?.key || 'middle'];
+    const lw = resolveShift() ? 8 : style.lw;
+    const seg = { x1, x2, y, lineIndex: li };
+    const stroke = {
+      segments: [seg],
+      color: LINE_COLOR,
+      lw,
+      arrow: resolveCtrl(),
+      altArrow: resolveAlt(),
+      offset: drawOffset,
+      dashed: !resolveShift()
+    };
+    eraseInRange([seg]);
+    strokes.push(stroke);
+    drawPreviewSeg = null;
+    modeArrow = false;
+    toggleArrow.classList.remove('active');
+    redrawOverlay();
+  });
+
   toggleNormal.addEventListener('click', () => {
     modeStrong = false;
     toggleNormal.classList.add('active');
