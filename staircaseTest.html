@@ -969,10 +969,20 @@
   }
 
   // --- Focus ---
-  function setFocus(v) {
+  // タッチデバイスでは仮想キーボードを出さないためtrap.focusを抑制
+  const isTouchDevice = () => navigator.maxTouchPoints > 0;
+
+  function setFocus(v, forceKeyboard = false) {
     focused = v;
-    if (v) { trap.focus(); focusPrompt.classList.add('hidden'); resetBlink(); }
-    else { clearInterval(cursorTimer); cursorVisible = false; focusPrompt.classList.remove('hidden'); }
+    if (v) {
+      if (!isTouchDevice() || forceKeyboard) trap.focus();
+      focusPrompt.classList.add('hidden');
+      resetBlink();
+    } else {
+      clearInterval(cursorTimer);
+      cursorVisible = false;
+      focusPrompt.classList.remove('hidden');
+    }
     render();
   }
 
@@ -1415,7 +1425,11 @@
     }, { passive: false });
     btn.addEventListener('touchend', e => {
       e.preventDefault();
-      btn.click(); // clickイベントを明示的に発火
+      // touchstart退避の選択を先に復元してからclick
+      if (window._savedSelStart !== undefined) selStart = window._savedSelStart;
+      if (window._savedSelEnd   !== undefined) selEnd   = window._savedSelEnd;
+      btn.click();
+      render();
     }, { passive: false });
 
     btn.addEventListener('click', () => {
@@ -2090,6 +2104,8 @@
       window._savedSelStart = undefined;
       window._savedSelEnd   = undefined;
       el.click();
+      // タッチ後にrenderで選択範囲を再描画（focusは呼ばない）
+      render();
     }, { passive: false });
   }
 
