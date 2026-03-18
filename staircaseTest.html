@@ -8,6 +8,13 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* Android/iOS長押しデフォルト選択を抑制（スクロールは許可） */
+  #editor-canvas {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
   :root {
     --paper: #f0f8ff;
     --ink: #1a1208;
@@ -1365,10 +1372,19 @@
       window._shiftHeld = e.shiftKey;
       window._altHeld   = e.altKey;
       window._ctrlHeld  = e.ctrlKey || e.metaKey;
-      // 選択状態を保持（mousedownでフォーカスが移ると選択がリセットされるのを防ぐ）
       window._savedSelStart = selStart ? { ...selStart } : null;
       window._savedSelEnd   = selEnd   ? { ...selEnd   } : null;
     });
+    // タッチデバイスでも選択を保持しclickを発火させる
+    btn.addEventListener('touchstart', e => {
+      e.preventDefault(); // デフォルト長押し抑制＋clickを自力で発火
+      window._savedSelStart = selStart ? { ...selStart } : null;
+      window._savedSelEnd   = selEnd   ? { ...selEnd   } : null;
+    }, { passive: false });
+    btn.addEventListener('touchend', e => {
+      e.preventDefault();
+      btn.click(); // clickイベントを明示的に発火
+    }, { passive: false });
 
     btn.addEventListener('click', () => {
       // mousedownで退避した選択状態を復元
@@ -1879,65 +1895,147 @@
     redrawOverlay();
   });
 
-  // ── 非描画モード用タッチイベント（長押しドラッグでテキスト選択）──
-  const LONG_PRESS_MS = 400; // 長押し判定時間
-  let touchSelectMode = false;  // 長押し後の選択ドラッグ中か
-  let longPressTimer  = null;
-  let touchSelectAnchor = null; // 選択開始位置 {line, col}
+  // ── タッチイベント共通処理 ──────────────────────────
+  function getTouchCanvasCoords(touch) {
+    const wr = wrapper.getBoundingClientRect();
+    const scaleX = canvas.width  / canvas.offsetWidth;
+    const scaleY = canvas.height / canvas.offsetHeight;
+    return {
+      x: (touch.clientX - wr.left + wrapper.scrollLeft) * scaleX,
+      y: (touch.clientY - wr.top  + wrapper.scrollTop)  * scaleY
+    };
+  }
+
+  // ── タッチイベント（描画モード＋非描画モード統合）──
+  const LONG_PRESS_MS = 450;
+  let touchSelectMode   = false;
+  let touchSelectAnchor = null;
+  let longPressTimer    = null;
+  let drawDraggingTouch = false;
 
   wrapper.addEventListener('touchstart', (e) => {
-    if (drawMode) return;
     if (e.touches.length !== 1) return;
-    const {x, y} = touchCoords(e);
-    const li  = lineFromY(y);
-    const col = colFromX(lines[li], x);
+    e.preventDefault();
 
-    touchSelectMode = false;
-    clearTimeout(longPressTimer);
-    longPressTimer = setTimeout(() => {
-      // 長押し成立 → 選択モード開始（単語選択）
-      touchSelectMode = true;
-      const t = lines[li]; let s = col, en = col;
-      while (s > 0 && /\S/.test(t[s-1])) s--;
-      while (en < t.length && /\S/.test(t[en])) en++;
-      selStart = { line: li, col: s };
-      selEnd   = { line: li, col: en };
-      touchSelectAnchor = { line: li, col: s };
-      cursorLine = li; cursorCol = en;
-      setFocus(true);
-      render();
-      // 触覚フィードバック（対応端末のみ）
-      if (navigator.vibrate) navigator.vibrate(30);
-    }, LONG_PRESS_MS);
+    const t = e.touches[0];
+    const {x, y} = getTouchCanvasCoords(t);
+
+    if (drawMode) {
+      // 描画モード
+      const topOffset    = Math.min(...Object.values(LINE_STYLES).map(s => s.offset));
+      const bottomOffset = Math.max(...Object.values(LINE_STYLES).map(s => s.offset));
+      const topY    = MARGIN_TOP + FONT_SIZE + topOffset - 10;
+      const bottomY = MARGIN_TOP + lines.length * LINE_HEIGHT + FONT_SIZE + bottomOffset + 10;
+      if (y < topY || y > bottomY) return;
+      const li = lineFromY(y);
+      const snapped = snapOffset(y, li);
+      drawDragging      = true;
+      drawDraggingTouch = true;
+      drawStartX    = x;
+      drawCurrentX  = x;
+      drawLineIndex = li;
+      drawOffset    = snapped.offset;
+      drawPreviewSeg = null;
+    } else {
+      // 非描画モード：長押しタイマー開始
+      clearTimeout(longPressTimer);
+      touchSelectMode = false;
+      longPressTimer = setTimeout(() => {
+        touchSelectMode = true;
+        const li  = lineFromY(y);
+        const col = colFromX(lines[li], x);
+        const t2  = lines[li];
+        let s = col, en = col;
+        while (s > 0 && /\S/.test(t2[s-1])) s--;
+        while (en < t2.length && /\S/.test(t2[en])) en++;
+        selStart = { line: li, col: s };
+        selEnd   = { line: li, col: en };
+        touchSelectAnchor = { line: li, col: s };
+        cursorLine = li; cursorCol = en;
+        setFocus(true);
+        render();
+        if (navigator.vibrate) navigator.vibrate(30);
+      }, LONG_PRESS_MS);
+    }
   }, { passive: false });
 
   window.addEventListener('touchmove', (e) => {
-    if (drawMode) return;
-    if (!touchSelectMode) {
-      clearTimeout(longPressTimer); // 動いたら長押しキャンセル
-      return;
-    }
     if (e.touches.length !== 1) return;
-    e.preventDefault();
-    const {x, y} = touchCoords(e);
-    const li  = lineFromY(y);
-    const col = colFromX(lines[li], x);
-    // アンカーより前後どちらかに選択を伸ばす
-    const anchor = touchSelectAnchor;
-    const cur    = { line: li, col };
-    const [s, en] = normSelPair(anchor, cur);
-    selStart = s; selEnd = en;
-    cursorLine = li; cursorCol = col;
-    render();
+    const t = e.touches[0];
+    const {x, y} = getTouchCanvasCoords(t);
+
+    if (drawMode && drawDragging) {
+      e.preventDefault();
+      drawCurrentX = x;
+      const li   = drawLineIndex;
+      const segY = MARGIN_TOP + li * LINE_HEIGHT + FONT_SIZE + Math.round(drawOffset);
+      const rx1  = Math.min(drawStartX, drawCurrentX);
+      const rx2  = Math.max(drawStartX, drawCurrentX);
+      const col1 = colFromX(lines[li], rx1);
+      const col2 = colFromX(lines[li], rx2);
+      const sx1  = xFromCol(lines[li], col1);
+      const sx2  = xFromCol(lines[li], Math.max(col1 + 1, col2));
+      drawPreviewSeg = { x1: sx1, x2: sx2, y: segY, lineIndex: li };
+      redrawOverlay();
+      const lw = resolveShift() ? 8 : LINE_STYLES.top.lw;
+      octx.save();
+      octx.strokeStyle = 'rgba(200,30,30,0.5)';
+      octx.lineWidth   = lw;
+      octx.lineCap     = 'round';
+      octx.setLineDash(resolveShift() ? [] : [Math.max(1, lw * 0.8), Math.max(2, lw * 0.9)]);
+      octx.beginPath();
+      octx.moveTo(sx1, segY);
+      octx.lineTo(sx2, segY);
+      octx.stroke();
+      octx.setLineDash([]);
+      octx.restore();
+    } else if (!drawMode && touchSelectMode) {
+      e.preventDefault();
+      const li  = lineFromY(y);
+      const col = colFromX(lines[li], x);
+      const cur = { line: li, col };
+      const anc = touchSelectAnchor;
+      if (anc.line < cur.line || (anc.line === cur.line && anc.col <= cur.col)) {
+        selStart = anc; selEnd = cur;
+      } else {
+        selStart = cur; selEnd = anc;
+      }
+      cursorLine = li; cursorCol = col;
+      render();
+    } else {
+      // 長押し待機中に動いたらキャンセル
+      clearTimeout(longPressTimer);
+    }
   }, { passive: false });
 
   window.addEventListener('touchend', (e) => {
-    if (drawMode) return;
     clearTimeout(longPressTimer);
-    if (!touchSelectMode) {
+
+    if (drawMode && drawDragging && drawDraggingTouch) {
+      drawDragging      = false;
+      drawDraggingTouch = false;
+      if (!drawPreviewSeg) { redrawOverlay(); return; }
+      const { x1, x2, y, lineIndex: li } = drawPreviewSeg;
+      if (x2 - x1 < 4) { redrawOverlay(); return; }
+      const style = LINE_STYLES[OFFSET_SNAP.find(s => s.offset === drawOffset)?.key || 'middle'];
+      const lw    = resolveShift() ? 8 : style.lw;
+      const seg   = { x1, x2, y, lineIndex: li };
+      const stroke = {
+        segments: [seg], color: LINE_COLOR, lw,
+        arrow: resolveCtrl(), altArrow: resolveAlt(),
+        offset: drawOffset, dashed: !resolveShift()
+      };
+      eraseInRange([seg]);
+      strokes.push(stroke);
+      drawPreviewSeg = null;
+      modeArrow = false;
+      toggleArrow.classList.remove('active');
+      redrawOverlay();
+    } else if (!drawMode && !touchSelectMode) {
       // 短いタップ → カーソル移動
       if (e.changedTouches.length === 1) {
-        const {x, y} = touchCoordsFromChanged(e);
+        const t   = e.changedTouches[0];
+        const {x, y} = getTouchCanvasCoords(t);
         const li  = lineFromY(y);
         const col = colFromX(lines[li], x);
         cursorLine = li; cursorCol = col;
@@ -1949,113 +2047,7 @@
     touchSelectMode = false;
   }, { passive: true });
 
-  function touchCoordsFromChanged(e) {
-    const t = e.changedTouches[0];
-    const wr = wrapper.getBoundingClientRect();
-    const scaleX = canvas.width  / canvas.offsetWidth;
-    const scaleY = canvas.height / canvas.offsetHeight;
-    return {
-      x: (t.clientX - wr.left + wrapper.scrollLeft) * scaleX,
-      y: (t.clientY - wr.top  + wrapper.scrollTop)  * scaleY
-    };
-  }
-
-  // 2点から正規化した{selStart, selEnd}ペアを返す
-  function normSelPair(a, b) {
-    if (a.line < b.line || (a.line === b.line && a.col <= b.col)) {
-      return [a, b];
-    }
-    return [b, a];
-  }
-
-  // ── 描画モード用タッチイベント（Android/タブレット対応）──
-  function touchCoords(e) {
-    const t = e.touches[0] || e.changedTouches[0];
-    const wr = wrapper.getBoundingClientRect();
-    const scaleX = canvas.width  / canvas.offsetWidth;
-    const scaleY = canvas.height / canvas.offsetHeight;
-    return {
-      x: (t.clientX - wr.left + wrapper.scrollLeft) * scaleX,
-      y: (t.clientY - wr.top  + wrapper.scrollTop)  * scaleY
-    };
-  }
-
-  wrapper.addEventListener('touchstart', (e) => {
-    if (!drawMode) return;
-    e.stopImmediatePropagation();
-    e.preventDefault();
-    const {x, y} = touchCoords(e);
-    const topOffset    = Math.min(...Object.values(LINE_STYLES).map(s => s.offset));
-    const bottomOffset = Math.max(...Object.values(LINE_STYLES).map(s => s.offset));
-    const topY    = MARGIN_TOP + FONT_SIZE + topOffset - 10;
-    const bottomY = MARGIN_TOP + lines.length * LINE_HEIGHT + FONT_SIZE + bottomOffset + 10;
-    if (y < topY || y > bottomY) return;
-    const li = lineFromY(y);
-    const snapped = snapOffset(y, li);
-    drawDragging  = true;
-    drawStartX    = x;
-    drawCurrentX  = x;
-    drawLineIndex = li;
-    drawOffset    = snapped.offset;
-    drawPreviewSeg = null;
-  }, { capture: true, passive: false });
-
-  window.addEventListener('touchmove', (e) => {
-    if (!drawDragging || !drawMode) return;
-    e.preventDefault();
-    const {x} = touchCoords(e);
-    drawCurrentX = x;
-    const li = drawLineIndex;
-    const segY = MARGIN_TOP + li * LINE_HEIGHT + FONT_SIZE + Math.round(drawOffset);
-    const x1 = Math.min(drawStartX, drawCurrentX);
-    const x2 = Math.max(drawStartX, drawCurrentX);
-    const col1 = colFromX(lines[li], x1);
-    const col2 = colFromX(lines[li], x2);
-    const sx1 = xFromCol(lines[li], col1);
-    const sx2 = xFromCol(lines[li], Math.max(col1 + 1, col2));
-    drawPreviewSeg = { x1: sx1, x2: sx2, y: segY, lineIndex: li };
-    redrawOverlay();
-    const lw = resolveShift() ? 8 : LINE_STYLES.top.lw;
-    octx.save();
-    octx.strokeStyle = 'rgba(200,30,30,0.5)';
-    octx.lineWidth = lw;
-    octx.lineCap = 'round';
-    octx.setLineDash(resolveShift() ? [] : [Math.max(1, lw * 0.8), Math.max(2, lw * 0.9)]);
-    octx.beginPath();
-    octx.moveTo(sx1, segY);
-    octx.lineTo(sx2, segY);
-    octx.stroke();
-    octx.setLineDash([]);
-    octx.restore();
-  }, { passive: false });
-
-  window.addEventListener('touchend', (e) => {
-    if (!drawDragging || !drawMode) return;
-    drawDragging = false;
-    if (!drawPreviewSeg) { redrawOverlay(); return; }
-    const { x1, x2, y, lineIndex: li } = drawPreviewSeg;
-    if (x2 - x1 < 4) { redrawOverlay(); return; }
-    const style = LINE_STYLES[OFFSET_SNAP.find(s => s.offset === drawOffset)?.key || 'middle'];
-    const lw = resolveShift() ? 8 : style.lw;
-    const seg = { x1, x2, y, lineIndex: li };
-    const stroke = {
-      segments: [seg],
-      color: LINE_COLOR,
-      lw,
-      arrow: resolveCtrl(),
-      altArrow: resolveAlt(),
-      offset: drawOffset,
-      dashed: !resolveShift()
-    };
-    eraseInRange([seg]);
-    strokes.push(stroke);
-    drawPreviewSeg = null;
-    modeArrow = false;
-    toggleArrow.classList.remove('active');
-    redrawOverlay();
-  });
-
-  toggleNormal.addEventListener('click', () => {
+    toggleNormal.addEventListener('click', () => {
     modeStrong = false;
     toggleNormal.classList.add('active');
     toggleStrong.classList.remove('active');
