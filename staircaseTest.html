@@ -8,6 +8,18 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* Android/iOS長押し選択を全体で抑制 */
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  /* 入力欄は選択可能に */
+  input, textarea, select {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
   /* Android/iOS長押しデフォルト選択を抑制 */
   #canvas-wrapper, #canvas-wrapper * {
     -webkit-user-select: none;
@@ -1208,10 +1220,9 @@
       octx.save();
       octx.strokeStyle = d.color;
       octx.lineWidth   = d.lw;
-      octx.lineCap     = 'round';
+      octx.lineCap     = 'butt';
       const dash = Math.max(1, d.lw * 0.8);
       const gap  = Math.max(2, d.lw * 0.9);
-      if (d.dashed) octx.lineCap = 'butt';
       octx.setLineDash(d.dashed ? [dash, gap] : []);
       octx.beginPath();
       octx.moveTo(d.x1, d.y1);
@@ -1272,12 +1283,26 @@
     octx.save();
     octx.strokeStyle = stroke.color;
     octx.lineWidth   = stroke.lw;
-    octx.lineCap     = 'round';
     const dash = Math.max(1, stroke.lw * 0.8);
     const gap  = Math.max(2, stroke.lw * 0.9);
-    if (stroke.dashed) octx.lineCap = 'butt';
+    // 点線はbutt（点が丸くならないよう）、強調線もbutt（端点の重なりを防ぐ）
+    octx.lineCap = 'butt';
     octx.setLineDash(stroke.dashed ? [dash, gap] : []);
     stroke.segments.forEach(seg => {
+      // 強調線（実線）は描画前に同じ範囲を白で消去して重なりを防ぐ
+      if (!stroke.dashed) {
+        octx.save();
+        octx.globalCompositeOperation = 'destination-out';
+        octx.strokeStyle = 'rgba(0,0,0,1)';
+        octx.lineWidth   = stroke.lw;
+        octx.lineCap     = 'butt';
+        octx.setLineDash([]);
+        octx.beginPath();
+        octx.moveTo(seg.x1, seg.y);
+        octx.lineTo(seg.x2, seg.y);
+        octx.stroke();
+        octx.restore();
+      }
       // 横線は常にseg.x2まで描く（縦線コネクタとの接続を維持）
       octx.beginPath();
       octx.moveTo(seg.x1, seg.y);
