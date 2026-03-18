@@ -1867,6 +1867,95 @@
     redrawOverlay();
   });
 
+  // ── 非描画モード用タッチイベント（長押しドラッグでテキスト選択）──
+  const LONG_PRESS_MS = 400; // 長押し判定時間
+  let touchSelectMode = false;  // 長押し後の選択ドラッグ中か
+  let longPressTimer  = null;
+  let touchSelectAnchor = null; // 選択開始位置 {line, col}
+
+  wrapper.addEventListener('touchstart', (e) => {
+    if (drawMode) return;
+    if (e.touches.length !== 1) return;
+    const {x, y} = touchCoords(e);
+    const li  = lineFromY(y);
+    const col = colFromX(lines[li], x);
+
+    touchSelectMode = false;
+    clearTimeout(longPressTimer);
+    longPressTimer = setTimeout(() => {
+      // 長押し成立 → 選択モード開始（単語選択）
+      touchSelectMode = true;
+      const t = lines[li]; let s = col, en = col;
+      while (s > 0 && /\S/.test(t[s-1])) s--;
+      while (en < t.length && /\S/.test(t[en])) en++;
+      selStart = { line: li, col: s };
+      selEnd   = { line: li, col: en };
+      touchSelectAnchor = { line: li, col: s };
+      cursorLine = li; cursorCol = en;
+      setFocus(true);
+      render();
+      // 触覚フィードバック（対応端末のみ）
+      if (navigator.vibrate) navigator.vibrate(30);
+    }, LONG_PRESS_MS);
+  }, { passive: true });
+
+  window.addEventListener('touchmove', (e) => {
+    if (drawMode) return;
+    if (!touchSelectMode) {
+      clearTimeout(longPressTimer); // 動いたら長押しキャンセル
+      return;
+    }
+    if (e.touches.length !== 1) return;
+    e.preventDefault();
+    const {x, y} = touchCoords(e);
+    const li  = lineFromY(y);
+    const col = colFromX(lines[li], x);
+    // アンカーより前後どちらかに選択を伸ばす
+    const anchor = touchSelectAnchor;
+    const cur    = { line: li, col };
+    const [s, en] = normSelPair(anchor, cur);
+    selStart = s; selEnd = en;
+    cursorLine = li; cursorCol = col;
+    render();
+  }, { passive: false });
+
+  window.addEventListener('touchend', (e) => {
+    if (drawMode) return;
+    clearTimeout(longPressTimer);
+    if (!touchSelectMode) {
+      // 短いタップ → カーソル移動
+      if (e.changedTouches.length === 1) {
+        const {x, y} = touchCoordsFromChanged(e);
+        const li  = lineFromY(y);
+        const col = colFromX(lines[li], x);
+        cursorLine = li; cursorCol = col;
+        clearSelection();
+        setFocus(true);
+        render();
+      }
+    }
+    touchSelectMode = false;
+  }, { passive: true });
+
+  function touchCoordsFromChanged(e) {
+    const t = e.changedTouches[0];
+    const wr = wrapper.getBoundingClientRect();
+    const scaleX = canvas.width  / canvas.offsetWidth;
+    const scaleY = canvas.height / canvas.offsetHeight;
+    return {
+      x: (t.clientX - wr.left + wrapper.scrollLeft) * scaleX,
+      y: (t.clientY - wr.top  + wrapper.scrollTop)  * scaleY
+    };
+  }
+
+  // 2点から正規化した{selStart, selEnd}ペアを返す
+  function normSelPair(a, b) {
+    if (a.line < b.line || (a.line === b.line && a.col <= b.col)) {
+      return [a, b];
+    }
+    return [b, a];
+  }
+
   // ── 描画モード用タッチイベント（Android/タブレット対応）──
   function touchCoords(e) {
     const t = e.touches[0] || e.changedTouches[0];
