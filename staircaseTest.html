@@ -962,6 +962,10 @@
     };
   }
 
+  // Android/iOS長押しによるデフォルト選択・コンテキストメニューを抑制
+  wrapper.addEventListener('contextmenu', (e) => { e.preventDefault(); });
+  wrapper.addEventListener('selectstart', (e) => { e.preventDefault(); });
+
   wrapper.addEventListener('mousedown', (e) => {
     e.preventDefault(); // テキスト選択のデフォルト動作を抑制
     const {x, y} = canvasCoords(e);
@@ -1361,9 +1365,17 @@
       window._shiftHeld = e.shiftKey;
       window._altHeld   = e.altKey;
       window._ctrlHeld  = e.ctrlKey || e.metaKey;
+      // 選択状態を保持（mousedownでフォーカスが移ると選択がリセットされるのを防ぐ）
+      window._savedSelStart = selStart ? { ...selStart } : null;
+      window._savedSelEnd   = selEnd   ? { ...selEnd   } : null;
     });
 
     btn.addEventListener('click', () => {
+      // mousedownで退避した選択状態を復元
+      if (window._savedSelStart !== null) selStart = window._savedSelStart;
+      if (window._savedSelEnd   !== null) selEnd   = window._savedSelEnd;
+      window._savedSelStart = undefined;
+      window._savedSelEnd   = undefined;
       const pos = btn.dataset.pos;
 
       if (pos === 'diag') {
@@ -1897,7 +1909,7 @@
       // 触覚フィードバック（対応端末のみ）
       if (navigator.vibrate) navigator.vibrate(30);
     }, LONG_PRESS_MS);
-  }, { passive: true });
+  }, { passive: false });
 
   window.addEventListener('touchmove', (e) => {
     if (drawMode) return;
