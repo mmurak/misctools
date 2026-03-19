@@ -1854,19 +1854,16 @@
   // 斜線ドラッグ用
   let diagDragging = false;     // 斜線ドラッグ中か
   let diagStartSeg = null;      // ドラッグ開始セグメント（横線の右端）
-  const DIAG_SNAP_R = 40;       // 端点スナップ半径(px) タッチ操作を考慮して広め
+  const DIAG_SNAP_R = 20;       // 端点スナップ半径(px)
 
   // 全セグメントの中から指定座標に最も近い端点を探す
   function findNearEndpoint(x, y, radius) {
     let best = null, bestDist = radius;
     strokes.forEach(stroke => {
       stroke.segments.forEach(seg => {
-        // 右端
+        // 右端のみをハンドルとして使用
         const dr = Math.hypot(x - seg.x2, y - seg.y);
         if (dr < bestDist) { bestDist = dr; best = { seg, side: 'right', stroke }; }
-        // 左端
-        const dl = Math.hypot(x - seg.x1, y - seg.y);
-        if (dl < bestDist) { bestDist = dl; best = { seg, side: 'left', stroke }; }
       });
     });
     return best;
@@ -2005,7 +2002,7 @@
         const s2 = nearEnd.seg;
         const px1 = diagStartSeg.side === 'right' ? s1.x2 : s1.x1;
         const py1 = s1.y;
-        const px2 = nearEnd.side === 'left' ? s2.x1 : s2.x2;
+        const px2 = s2.x2;  // 終点も右端に接続
         const py2 = s2.y;
         const li  = s1.lineIndex;
         const lw  = resolveShift() ? 8 : 6;
@@ -2202,7 +2199,7 @@
         const s2 = nearEnd.seg;
         const px1 = diagStartSeg.side === 'right' ? s1.x2 : s1.x1;
         const py1 = s1.y;
-        const px2 = nearEnd.side === 'left' ? s2.x1 : s2.x2;
+        const px2 = s2.x2;  // 終点も右端に接続
         const py2 = s2.y;
         const li  = s1.lineIndex;
         const lw  = resolveShift() ? 8 : 6;
