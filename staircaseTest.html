@@ -8,31 +8,9 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* Android/iOS長押し選択を全体で抑制 */
-  body {
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-touch-callout: none;
-  }
-  /* 入力欄は選択可能に */
-  input, textarea, select {
-    -webkit-user-select: text;
-    user-select: text;
-  }
 
-  /* Android/iOS長押しデフォルト選択を抑制 */
-  #canvas-wrapper, #canvas-wrapper * {
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-touch-callout: none;
-  }
-  /* ボタン・入力欄は選択可能に戻す */
-  #canvas-wrapper button,
-  #canvas-wrapper input,
-  #canvas-wrapper select {
-    -webkit-user-select: auto;
-    user-select: auto;
-  }
+
+
 
   :root {
     --paper: #f0f8ff;
@@ -600,6 +578,8 @@
   </div>
 </div>
 
+<textarea id="input-trap" style="position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;top:0;left:0;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+
 <div class="editor-frame">
 
   <div class="toolbar" id="toolbar">
@@ -638,6 +618,7 @@
   <div class="canvas-wrapper" id="canvas-wrapper">
     <canvas id="editor-canvas"></canvas>
     <canvas id="overlay-canvas" style="position:absolute;top:0;left:0;pointer-events:none;z-index:5;"></canvas>
+
     <div class="focus-prompt" id="focus-prompt">
       <div class="focus-text">— クリックして入力開始 —</div>
     </div>
@@ -688,7 +669,7 @@
 
 <input type="file" id="file-input" accept=".lpe" style="display:none;">
 
-<textarea id="input-trap" style="position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;top:0;left:0;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+
 
 <script>
 (function() {
@@ -699,6 +680,8 @@
   const wrapper = document.getElementById('canvas-wrapper');
   const toolbar = document.getElementById('toolbar');
   const trap = document.getElementById('input-trap');
+
+
   const focusPrompt = document.getElementById('focus-prompt');
   const fontSelect = document.getElementById('font-select');
   const sizeDisplay = document.getElementById('size-display');
@@ -766,10 +749,7 @@
 
   // Toolbar clicks don't steal editor focus
   toolbar.addEventListener('mousedown', (e) => {
-    if (focused && e.target !== fontSelect) {
-      e.preventDefault();
-      if (!suppressKeyboard) setTimeout(() => trap.focus(), 0);
-    }
+    if (focused && e.target !== fontSelect) { e.preventDefault(); setTimeout(() => trap.focus(), 0); }
   });
 
   // --- Canvas resize ---
@@ -972,24 +952,10 @@
   }
 
   // --- Focus ---
-  const isTouchDevice = () => navigator.maxTouchPoints > 0;
-
-  // タッチ操作中はキーボード抑制フラグ
-  let suppressKeyboard = false;
-
-  function setFocus(v, forceKeyboard = false) {
+  function setFocus(v) {
     focused = v;
-    if (v) {
-      // forceKeyboard=trueの場合はsuppressKeyboardを無視（タップでのテキスト入力）
-      if (forceKeyboard || (!suppressKeyboard && !isTouchDevice())) trap.focus();
-      focusPrompt.classList.add('hidden');
-      resetBlink();
-    } else {
-      clearInterval(cursorTimer);
-      cursorVisible = false;
-      // 選択はクリアしない（ボタン操作後も選択を維持するため）
-      focusPrompt.classList.remove('hidden');
-    }
+    if (v) { trap.focus(); focusPrompt.classList.add('hidden'); resetBlink(); }
+    else { clearInterval(cursorTimer); cursorVisible = false; focusPrompt.classList.remove('hidden'); }
     render();
   }
 
@@ -1036,7 +1002,7 @@
     }
 
     dragging = clickCount === 1; // シングルのみドラッグ有効
-    setFocus(true, !isTouchDevice()); render();
+    setFocus(true); render();
   });
 
   window.addEventListener('mousemove', (e) => {
@@ -1058,33 +1024,9 @@
     }
   });
 
-  // line-panelタッチ時にキーボード抑制と選択保持
-  [linePanel, linePanelStyle].forEach(panel => {
-    panel.addEventListener('touchstart', e => {
-      suppressKeyboard = true;
-      // 選択を保持
-      window._savedSelStart = selStart ? { ...selStart } : null;
-      window._savedSelEnd   = selEnd   ? { ...selEnd   } : null;
-    }, { passive: true });
-    panel.addEventListener('touchend', e => {
-      // 選択を復元
-      if (window._savedSelStart !== undefined) selStart = window._savedSelStart;
-      if (window._savedSelEnd   !== undefined) selEnd   = window._savedSelEnd;
-      window._savedSelStart = undefined;
-      window._savedSelEnd   = undefined;
-      setTimeout(() => { suppressKeyboard = false; }, 300);
-    }, { passive: true });
-  });
-
   // フォーカス解除（エディタ外クリック）
-  const linePanel      = document.getElementById('line-panel');
-  const linePanelStyle = document.getElementById('line-panel-style');
   window.addEventListener('mousedown', (e) => {
-    const inEditor = wrapper.contains(e.target)
-      || toolbar.contains(e.target)
-      || linePanel.contains(e.target)
-      || linePanelStyle.contains(e.target);
-    if (!inEditor) setFocus(false);
+    if (!wrapper.contains(e.target) && !toolbar.contains(e.target)) setFocus(false);
   });
 
   // --- IME Composition ---
@@ -1350,12 +1292,16 @@
       octx.lineTo(seg.x2, seg.y);
       octx.stroke();
 
-      if (stroke.altArrow) {
-        // Optionキー: 真横に伸びる矢印
-        drawArrowhead(seg.x2, seg.y, 0, stroke.lw, stroke.color);
-      } else if (stroke.arrow) {
-        // Ctrl/Commandキー: 斜め上／下に伸びる矢印
-        const arrowAngle = (stroke.offset < 0) ? -Math.PI * 0.25 : Math.PI * 0.25;
+      if (stroke.arrow) {
+        // offset<0(上端・上寄り)→斜め上、offset≈0(ベースライン)→真横、それ以外→斜め下
+        let arrowAngle;
+        if (stroke.offset < -10) {
+          arrowAngle = -Math.PI * 0.25; // 斜め上
+        } else if (Math.abs(stroke.offset) <= 10) {
+          arrowAngle = 0;               // 真横
+        } else {
+          arrowAngle = Math.PI * 0.25;  // 斜め下
+        }
         drawArrowhead(seg.x2, seg.y, arrowAngle, stroke.lw, stroke.color);
       }
     });
@@ -1443,33 +1389,11 @@
     btn.addEventListener('mousedown', e => {
       e.preventDefault();
       window._shiftHeld = e.shiftKey;
-      window._altHeld   = e.altKey;
       window._ctrlHeld  = e.ctrlKey || e.metaKey;
-      window._savedSelStart = selStart ? { ...selStart } : null;
-      window._savedSelEnd   = selEnd   ? { ...selEnd   } : null;
     });
-    // タッチデバイスでも選択を保持しclickを発火させる
-    btn.addEventListener('touchstart', e => {
-      e.preventDefault();
-      suppressKeyboard = true;
-      window._savedSelStart = selStart ? { ...selStart } : null;
-      window._savedSelEnd   = selEnd   ? { ...selEnd   } : null;
-    }, { passive: false });
-    btn.addEventListener('touchend', e => {
-      e.preventDefault();
-      if (window._savedSelStart !== undefined) selStart = window._savedSelStart;
-      if (window._savedSelEnd   !== undefined) selEnd   = window._savedSelEnd;
-      btn.click();
-      render();
-      setTimeout(() => { suppressKeyboard = false; }, 300);
-    }, { passive: false });
+
 
     btn.addEventListener('click', () => {
-      // mousedownで退避した選択状態を復元
-      if (window._savedSelStart !== null) selStart = window._savedSelStart;
-      if (window._savedSelEnd   !== null) selEnd   = window._savedSelEnd;
-      window._savedSelStart = undefined;
-      window._savedSelEnd   = undefined;
       const pos = btn.dataset.pos;
 
       if (pos === 'diag') {
@@ -1601,7 +1525,7 @@
       }
 
       const lw = resolveShift() ? 8 : style.lw;  // 強調:8px 通常:6px
-      const stroke = { segments: segs, color: style.color, lw, arrow: resolveCtrl(), altArrow: resolveAlt(), offset: style.offset, dashed: !resolveShift() };
+      const stroke = { segments: segs, color: style.color, lw, arrow: resolveCtrl(), offset: style.offset, dashed: !resolveShift() };
       eraseInRange(segs);
       strokes.push(stroke);
       // 横線描画後に矢印トグルを解除
@@ -1887,8 +1811,12 @@
     const cur = drawMode ? 'default' : 'text';
     canvas.style.cursor  = cur;
     wrapper.style.cursor = cur;
-    // focus-promptなどwrapper内の全子要素にも適用
     wrapper.querySelectorAll('*').forEach(el => { el.style.cursor = cur; });
+    if (drawMode) {
+      trap.blur();  // 描画モードON: 仮想キーボードを閉じる
+    } else if (focused) {
+      trap.focus(); // 描画モードOFF: フォーカス中なら仮想キーボードを再表示
+    }
   });
 
   // 描画モード用マウスイベント（wrapperに追加）
@@ -2097,7 +2025,7 @@
       const seg   = { x1, x2, y, lineIndex: li };
       const stroke = {
         segments: [seg], color: LINE_COLOR, lw,
-        arrow: resolveCtrl(), altArrow: resolveAlt(),
+        arrow: resolveCtrl(),
         offset: drawOffset, dashed: !resolveShift()
       };
       eraseInRange([seg]);
@@ -2119,11 +2047,7 @@
         focusPrompt.classList.add('hidden');
         resetBlink();
         render();
-        // AndroidではtouchendのfocusはNG → requestAnimationFrameで遅延実行
-        requestAnimationFrame(() => {
-          trap.focus();
-          trap.click();
-        });
+        // inputはタップで自動フォーカスされるため追加処理不要
       }
     }
     touchSelectMode = false;
@@ -2175,25 +2099,20 @@
   // キーボード修飾キーが押されている場合はそちらを優先
   function resolveShift() { return window._shiftHeld || modeStrong; }
   function resolveCtrl()  { return window._ctrlHeld  || modeArrow;  }
-  function resolveAlt()   { return window._altHeld   || false; }
-
   // Shiftキー状態追跡
   window._shiftHeld = false;
   window._ctrlHeld  = false;
-  window._altHeld   = false;
   window.addEventListener('keydown', e => {
     if (e.key === 'Shift') window._shiftHeld = true;
     // Control / Meta(Command) / Alt(Option) のいずれかでctrl扱い
     if (e.key === 'Control' || e.key === 'Meta') window._ctrlHeld = true;
-    if (e.key === 'Alt') window._altHeld = true;
   });
   window.addEventListener('keyup', e => {
     if (e.key === 'Shift') window._shiftHeld = false;
     if (e.key === 'Control' || e.key === 'Meta') window._ctrlHeld = false;
-    if (e.key === 'Alt') window._altHeld = false;
   });
   // ウィンドウがフォーカスを失ったときにフラグをリセット
-  window.addEventListener('blur', () => { window._shiftHeld = false; window._ctrlHeld = false; window._altHeld = false; });
+  window.addEventListener('blur', () => { window._shiftHeld = false; window._ctrlHeld = false; });
 
 })();
 </script>
