@@ -1411,10 +1411,36 @@
       e.preventDefault();
       window._shiftHeld = e.shiftKey;
       window._ctrlHeld  = e.ctrlKey || e.metaKey;
+      // 選択状態を退避
+      window._savedSel = selStart && selEnd
+        ? { start: { ...selStart }, end: { ...selEnd } } : null;
     });
 
+    // Androidタッチ対応：touchstartで選択退避・キーボード抑制、touchendでclick発火
+    btn.addEventListener('touchstart', e => {
+      e.preventDefault();
+      window._shiftHeld = false;
+      window._ctrlHeld  = false;
+      window._savedSel = selStart && selEnd
+        ? { start: { ...selStart }, end: { ...selEnd } } : null;
+    }, { passive: false });
+    btn.addEventListener('touchend', e => {
+      e.preventDefault();
+      // 選択を復元してからclick
+      if (window._savedSel) {
+        selStart = window._savedSel.start;
+        selEnd   = window._savedSel.end;
+      }
+      btn.click();
+    }, { passive: false });
 
     btn.addEventListener('click', () => {
+      // touchendから来た場合も選択を復元
+      if (window._savedSel) {
+        selStart = window._savedSel.start;
+        selEnd   = window._savedSel.end;
+        window._savedSel = null;
+      }
       const pos = btn.dataset.pos;
 
       if (pos === 'diag') {
@@ -2117,6 +2143,27 @@
   addTouchSelectionGuard(toggleStrong);
   addTouchSelectionGuard(toggleArrow);
   addTouchSelectionGuard(toggleDrawMode);
+
+  // スタイル・矢印トグルにタッチガードを適用
+  function addSelGuardTouch(el) {
+    el.addEventListener('touchstart', e => {
+      e.preventDefault();
+      window._savedSel = selStart && selEnd
+        ? { start: { ...selStart }, end: { ...selEnd } } : null;
+    }, { passive: false });
+    el.addEventListener('touchend', e => {
+      e.preventDefault();
+      if (window._savedSel) {
+        selStart = window._savedSel.start;
+        selEnd   = window._savedSel.end;
+        window._savedSel = null;
+      }
+      el.click();
+    }, { passive: false });
+  }
+  addSelGuardTouch(toggleNormal);
+  addSelGuardTouch(toggleStrong);
+  addSelGuardTouch(toggleArrow);
 
   toggleNormal.addEventListener('click', () => {
     modeStrong = false;
