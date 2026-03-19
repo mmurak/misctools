@@ -2115,8 +2115,15 @@
         const col = colFromX(lines[li], x);
         cursorLine = li; cursorCol = col;
         clearSelection();
-        setFocus(true, true); // タップ時は仮想キーボードを表示
+        focused = true;
+        focusPrompt.classList.add('hidden');
+        resetBlink();
         render();
+        // AndroidではtouchendのfocusはNG → requestAnimationFrameで遅延実行
+        requestAnimationFrame(() => {
+          trap.focus();
+          trap.click();
+        });
       }
     }
     touchSelectMode = false;
