@@ -1851,6 +1851,27 @@
   let drawOffset = 0;           // スナップしたoffset(px)
   let drawPreviewSeg = null;    // プレビュー用セグメント
 
+  // 斜線ドラッグ用
+  let diagDragging = false;     // 斜線ドラッグ中か
+  let diagStartSeg = null;      // ドラッグ開始セグメント（横線の右端）
+  const DIAG_SNAP_R = 20;       // 端点スナップ半径(px)
+
+  // 全セグメントの中から指定座標に最も近い端点を探す
+  function findNearEndpoint(x, y, radius) {
+    let best = null, bestDist = radius;
+    strokes.forEach(stroke => {
+      stroke.segments.forEach(seg => {
+        // 右端
+        const dr = Math.hypot(x - seg.x2, y - seg.y);
+        if (dr < bestDist) { bestDist = dr; best = { seg, side: 'right', stroke }; }
+        // 左端
+        const dl = Math.hypot(x - seg.x1, y - seg.y);
+        if (dl < bestDist) { bestDist = dl; best = { seg, side: 'left', stroke }; }
+      });
+    });
+    return best;
+  }
+
   // y座標から最も近いyRatioにスナップ
   const OFFSET_SNAP = [
     { key: 'top',    offset: LINE_STYLES.top.offset },
@@ -1887,12 +1908,20 @@
   // 描画モード用マウスイベント（wrapperに追加）
   wrapper.addEventListener('mousedown', (e) => {
     if (!drawMode) return;
-    // 描画モード中は常にテキスト選択を抑制
     e.stopImmediatePropagation();
     e.preventDefault();
     const {x, y} = canvasCoords(e);
-    // テキスト行の範囲内でのみドラッグ開始
-    // 上端offsetが負なので、その分だけ上に広げる
+
+    // まず横線の端点付近かどうかチェック → 斜線ドラッグ
+    const near = findNearEndpoint(x, y, DIAG_SNAP_R);
+    if (near) {
+      diagDragging = true;
+      diagStartSeg = near;
+      drawDragging = false;
+      return;
+    }
+
+    // 通常の横線ドラッグ
     const topOffset    = Math.min(...Object.values(LINE_STYLES).map(s => s.offset));
     const bottomOffset = Math.max(...Object.values(LINE_STYLES).map(s => s.offset));
     const topY    = MARGIN_TOP + FONT_SIZE + topOffset - 10;
@@ -1906,9 +1935,29 @@
     drawLineIndex = li;
     drawOffset    = snapped.offset;
     drawPreviewSeg = null;
-  }, true); // capture=trueで既存handlerより先に処理
+  }, true);
 
   window.addEventListener('mousemove', (e) => {
+    // 斜線ドラッグプレビュー
+    if (diagDragging && drawMode) {
+      const {x, y} = canvasCoords(e);
+      const s = diagStartSeg.seg;
+      const startX = diagStartSeg.side === 'right' ? s.x2 : s.x1;
+      const startY = s.y;
+      redrawOverlay();
+      octx.save();
+      octx.strokeStyle = 'rgba(200,30,30,0.5)';
+      octx.lineWidth   = 6;
+      octx.lineCap     = 'butt';
+      octx.setLineDash([Math.max(1, 6*0.8), Math.max(2, 6*0.9)]);
+      octx.beginPath();
+      octx.moveTo(startX, startY);
+      octx.lineTo(x, y);
+      octx.stroke();
+      octx.setLineDash([]);
+      octx.restore();
+      return;
+    }
     if (!drawDragging || !drawMode) return;
     const {x} = canvasCoords(e);
     drawCurrentX = x;
@@ -1940,6 +1989,38 @@
   });
 
   window.addEventListener('mouseup', (e) => {
+    // 斜線ドラッグ確定
+    if (diagDragging && drawMode) {
+      diagDragging = false;
+      const {x, y} = canvasCoords(e);
+      // 終点付近の端点を探す
+      const nearEnd = findNearEndpoint(x, y, DIAG_SNAP_R);
+      if (nearEnd && nearEnd.seg !== diagStartSeg.seg) {
+        const s1 = diagStartSeg.seg;
+        const s2 = nearEnd.seg;
+        const px1 = diagStartSeg.side === 'right' ? s1.x2 : s1.x1;
+        const py1 = s1.y;
+        const px2 = nearEnd.side === 'left' ? s2.x1 : s2.x2;
+        const py2 = s2.y;
+        const li  = s1.lineIndex;
+        const lw  = resolveShift() ? 8 : 6;
+        eraseInRange([{ lineIndex: li, x1: Math.min(px1,px2), x2: Math.max(px1,px2) }]);
+        diagStrokes.push({
+          x1: px1, y1: py1, x2: px2, y2: py2,
+          color: LINE_COLOR, lw,
+          arrow: resolveCtrl(),
+          dashed: !resolveShift(),
+          lineIndex: li,
+          segX1: Math.min(px1, px2),
+          segX2: Math.max(px1, px2),
+        });
+        // 矢印トグル解除
+        modeArrow = false;
+        toggleArrow.classList.remove('active');
+      }
+      redrawOverlay();
+      return;
+    }
     if (!drawDragging || !drawMode) return;
     drawDragging = false;
     if (!drawPreviewSeg) { redrawOverlay(); return; }
