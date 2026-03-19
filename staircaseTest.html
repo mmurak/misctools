@@ -1355,7 +1355,7 @@
         const gap = Math.abs(b.x1 - a.x2);
         const bStartsInsideA = b.x1 >= a.x1 - 4 && b.x1 <= a.x2 + 4;
         if (gap <= 4 || bStartsInsideA) {
-          const lw   = 2;
+          const lw   = 6;  // 横線の点線と同じ太さ
           const isDashed = true; // 縦線は常に点線
           const dash = Math.max(1, lw * 0.8);
           const cgap = Math.max(2, lw * 0.9);
