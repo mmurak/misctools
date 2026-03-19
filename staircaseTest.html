@@ -1900,8 +1900,13 @@
     wrapper.querySelectorAll('*').forEach(el => { el.style.cursor = cur; });
     if (drawMode) {
       trap.blur();  // 描画モードON: 仮想キーボードを閉じる
-    } else if (focused) {
-      trap.focus(); // 描画モードOFF: フォーカス中なら仮想キーボードを再表示
+    } else {
+      // 描画モードOFF: プレビューをクリアして確定済みの線を再描画
+      drawDragging   = false;
+      diagDragging   = false;
+      drawPreviewSeg = null;
+      redrawOverlay();
+      if (focused) trap.focus();
     }
   });
 
@@ -1978,7 +1983,7 @@
     octx.save();
     octx.strokeStyle = 'rgba(200,30,30,0.5)';
     octx.lineWidth = lw;
-    octx.lineCap = 'round';
+    octx.lineCap = 'butt';
     octx.setLineDash(resolveShift() ? [] : [Math.max(1, lw * 0.8), Math.max(2, lw * 0.9)]);
     octx.beginPath();
     octx.moveTo(sx1, segY);
@@ -2034,7 +2039,6 @@
       color: LINE_COLOR,
       lw,
       arrow: resolveCtrl(),
-      altArrow: resolveAlt(),
       offset: drawOffset,
       dashed: !resolveShift()
     };
