@@ -766,7 +766,10 @@
 
   // Toolbar clicks don't steal editor focus
   toolbar.addEventListener('mousedown', (e) => {
-    if (focused && e.target !== fontSelect) { e.preventDefault(); setTimeout(() => trap.focus(), 0); }
+    if (focused && e.target !== fontSelect) {
+      e.preventDefault();
+      if (!suppressKeyboard) setTimeout(() => trap.focus(), 0);
+    }
   });
 
   // --- Canvas resize ---
@@ -969,13 +972,15 @@
   }
 
   // --- Focus ---
-  // タッチデバイスでは仮想キーボードを出さないためtrap.focusを抑制
   const isTouchDevice = () => navigator.maxTouchPoints > 0;
+
+  // タッチ操作中はキーボード抑制フラグ
+  let suppressKeyboard = false;
 
   function setFocus(v, forceKeyboard = false) {
     focused = v;
     if (v) {
-      if (!isTouchDevice() || forceKeyboard) trap.focus();
+      if (!suppressKeyboard && (!isTouchDevice() || forceKeyboard)) trap.focus();
       focusPrompt.classList.add('hidden');
       resetBlink();
     } else {
@@ -1419,17 +1424,18 @@
     });
     // タッチデバイスでも選択を保持しclickを発火させる
     btn.addEventListener('touchstart', e => {
-      e.preventDefault(); // デフォルト長押し抑制＋clickを自力で発火
+      e.preventDefault();
+      suppressKeyboard = true;
       window._savedSelStart = selStart ? { ...selStart } : null;
       window._savedSelEnd   = selEnd   ? { ...selEnd   } : null;
     }, { passive: false });
     btn.addEventListener('touchend', e => {
       e.preventDefault();
-      // touchstart退避の選択を先に復元してからclick
       if (window._savedSelStart !== undefined) selStart = window._savedSelStart;
       if (window._savedSelEnd   !== undefined) selEnd   = window._savedSelEnd;
       btn.click();
       render();
+      setTimeout(() => { suppressKeyboard = false; }, 300);
     }, { passive: false });
 
     btn.addEventListener('click', () => {
@@ -2094,6 +2100,7 @@
   function addTouchSelectionGuard(el) {
     el.addEventListener('touchstart', e => {
       e.preventDefault();
+      suppressKeyboard = true;
       window._savedSelStart = selStart ? { ...selStart } : null;
       window._savedSelEnd   = selEnd   ? { ...selEnd   } : null;
     }, { passive: false });
@@ -2104,8 +2111,9 @@
       window._savedSelStart = undefined;
       window._savedSelEnd   = undefined;
       el.click();
-      // タッチ後にrenderで選択範囲を再描画（focusは呼ばない）
       render();
+      // 少し後にフラグを戻す（click処理完了後）
+      setTimeout(() => { suppressKeyboard = false; }, 300);
     }, { passive: false });
   }
 
