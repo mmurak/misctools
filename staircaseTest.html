@@ -136,6 +136,22 @@
   }
 
   .size-btn:hover { background: rgba(139,58,26,0.35); }
+
+  #btn-keyboard {
+    width: auto;
+    height: 28px;
+    font-size: 16px;
+    padding: 0 10px;
+    border: 1px solid rgba(100,160,200,0.7);
+    border-radius: 3px;
+    background: rgba(255,255,255,0.25);
+    color: #1a1a1a;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+  #btn-keyboard:hover { background: rgba(40,120,180,0.55) !important; color: #fff !important; }
+  #btn-keyboard.active { background: rgba(40,120,180,0.6); color: #fff; border-color: rgba(40,120,180,0.8); }
   .size-btn:active { background: rgba(139,58,26,0.55); }
 
   #btn-pos-settings {
@@ -612,6 +628,11 @@
     <div style="width:8px;"></div>
 
     <button class="size-btn" id="btn-pos-settings" title="各線の高さ位置を設定">⚙ 描画設定</button>
+
+    <div class="toolbar-divider"></div>
+    <div style="width:8px;"></div>
+
+    <button id="btn-keyboard" title="仮想キーボードを表示">⌨️</button>
   </div>
 
   <div class="paper-roll"></div>
@@ -1764,6 +1785,24 @@
       }
     };
     reader.readAsText(file);
+  });
+
+  // ── キーボードボタン ──────────────────────────
+  const btnKeyboard = document.getElementById('btn-keyboard');
+  btnKeyboard.addEventListener('click', () => {
+    if (document.activeElement === trap) {
+      trap.blur();
+      btnKeyboard.classList.remove('active');
+    } else {
+      setFocus(true);
+      btnKeyboard.classList.add('active');
+    }
+  });
+  trap.addEventListener('blur', () => {
+    btnKeyboard.classList.remove('active');
+  });
+  trap.addEventListener('focus', () => {
+    btnKeyboard.classList.add('active');
   });
 
   // ── モードトグル ──────────────────────────
