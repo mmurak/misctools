@@ -1292,16 +1292,12 @@
       octx.lineTo(seg.x2, seg.y);
       octx.stroke();
 
-      if (stroke.arrow) {
-        // offset<0(上端・上寄り)→斜め上、offset≈0(ベースライン)→真横、それ以外→斜め下
-        let arrowAngle;
-        if (stroke.offset < -10) {
-          arrowAngle = -Math.PI * 0.25; // 斜め上
-        } else if (Math.abs(stroke.offset) <= 10) {
-          arrowAngle = 0;               // 真横
-        } else {
-          arrowAngle = Math.PI * 0.25;  // 斜め下
-        }
+      if (stroke.altArrow) {
+        // Optionキー: 真横に伸びる矢印
+        drawArrowhead(seg.x2, seg.y, 0, stroke.lw, stroke.color);
+      } else if (stroke.arrow) {
+        // Ctrl/Commandキー: 斜め上／下に伸びる矢印
+        const arrowAngle = (stroke.offset < 0) ? -Math.PI * 0.25 : Math.PI * 0.25;
         drawArrowhead(seg.x2, seg.y, arrowAngle, stroke.lw, stroke.color);
       }
     });
@@ -1389,6 +1385,7 @@
     btn.addEventListener('mousedown', e => {
       e.preventDefault();
       window._shiftHeld = e.shiftKey;
+      window._altHeld   = e.altKey;
       window._ctrlHeld  = e.ctrlKey || e.metaKey;
     });
 
@@ -1525,7 +1522,7 @@
       }
 
       const lw = resolveShift() ? 8 : style.lw;  // 強調:8px 通常:6px
-      const stroke = { segments: segs, color: style.color, lw, arrow: resolveCtrl(), offset: style.offset, dashed: !resolveShift() };
+      const stroke = { segments: segs, color: style.color, lw, arrow: resolveCtrl(), altArrow: resolveAlt(), offset: style.offset, dashed: !resolveShift() };
       eraseInRange(segs);
       strokes.push(stroke);
       // 横線描画後に矢印トグルを解除
@@ -1812,11 +1809,8 @@
     canvas.style.cursor  = cur;
     wrapper.style.cursor = cur;
     wrapper.querySelectorAll('*').forEach(el => { el.style.cursor = cur; });
-    if (drawMode) {
-      trap.blur();  // 描画モードON: 仮想キーボードを閉じる
-    } else if (focused) {
-      trap.focus(); // 描画モードOFF: フォーカス中なら仮想キーボードを再表示
-    }
+    // 描画モード時はtrapをpointer-events:noneにして描画ドラッグを通す
+    trap.style.pointerEvents = drawMode ? 'none' : 'auto';
   });
 
   // 描画モード用マウスイベント（wrapperに追加）
@@ -2025,7 +2019,7 @@
       const seg   = { x1, x2, y, lineIndex: li };
       const stroke = {
         segments: [seg], color: LINE_COLOR, lw,
-        arrow: resolveCtrl(),
+        arrow: resolveCtrl(), altArrow: resolveAlt(),
         offset: drawOffset, dashed: !resolveShift()
       };
       eraseInRange([seg]);
@@ -2099,20 +2093,25 @@
   // キーボード修飾キーが押されている場合はそちらを優先
   function resolveShift() { return window._shiftHeld || modeStrong; }
   function resolveCtrl()  { return window._ctrlHeld  || modeArrow;  }
+  function resolveAlt()   { return window._altHeld   || false; }
+
   // Shiftキー状態追跡
   window._shiftHeld = false;
   window._ctrlHeld  = false;
+  window._altHeld   = false;
   window.addEventListener('keydown', e => {
     if (e.key === 'Shift') window._shiftHeld = true;
     // Control / Meta(Command) / Alt(Option) のいずれかでctrl扱い
     if (e.key === 'Control' || e.key === 'Meta') window._ctrlHeld = true;
+    if (e.key === 'Alt') window._altHeld = true;
   });
   window.addEventListener('keyup', e => {
     if (e.key === 'Shift') window._shiftHeld = false;
     if (e.key === 'Control' || e.key === 'Meta') window._ctrlHeld = false;
+    if (e.key === 'Alt') window._altHeld = false;
   });
   // ウィンドウがフォーカスを失ったときにフラグをリセット
-  window.addEventListener('blur', () => { window._shiftHeld = false; window._ctrlHeld = false; });
+  window.addEventListener('blur', () => { window._shiftHeld = false; window._ctrlHeld = false; window._altHeld = false; });
 
 })();
 </script>
