@@ -980,7 +980,8 @@
   function setFocus(v, forceKeyboard = false) {
     focused = v;
     if (v) {
-      if (!suppressKeyboard && (!isTouchDevice() || forceKeyboard)) trap.focus();
+      // forceKeyboard=trueの場合はsuppressKeyboardを無視（タップでのテキスト入力）
+      if (forceKeyboard || (!suppressKeyboard && !isTouchDevice())) trap.focus();
       focusPrompt.classList.add('hidden');
       resetBlink();
     } else {
