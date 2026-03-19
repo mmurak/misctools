@@ -986,6 +986,7 @@
     } else {
       clearInterval(cursorTimer);
       cursorVisible = false;
+      // 選択はクリアしない（ボタン操作後も選択を維持するため）
       focusPrompt.classList.remove('hidden');
     }
     render();
@@ -1056,9 +1057,33 @@
     }
   });
 
+  // line-panelタッチ時にキーボード抑制と選択保持
+  [linePanel, linePanelStyle].forEach(panel => {
+    panel.addEventListener('touchstart', e => {
+      suppressKeyboard = true;
+      // 選択を保持
+      window._savedSelStart = selStart ? { ...selStart } : null;
+      window._savedSelEnd   = selEnd   ? { ...selEnd   } : null;
+    }, { passive: true });
+    panel.addEventListener('touchend', e => {
+      // 選択を復元
+      if (window._savedSelStart !== undefined) selStart = window._savedSelStart;
+      if (window._savedSelEnd   !== undefined) selEnd   = window._savedSelEnd;
+      window._savedSelStart = undefined;
+      window._savedSelEnd   = undefined;
+      setTimeout(() => { suppressKeyboard = false; }, 300);
+    }, { passive: true });
+  });
+
   // フォーカス解除（エディタ外クリック）
+  const linePanel      = document.getElementById('line-panel');
+  const linePanelStyle = document.getElementById('line-panel-style');
   window.addEventListener('mousedown', (e) => {
-    if (!wrapper.contains(e.target) && !toolbar.contains(e.target)) setFocus(false);
+    const inEditor = wrapper.contains(e.target)
+      || toolbar.contains(e.target)
+      || linePanel.contains(e.target)
+      || linePanelStyle.contains(e.target);
+    if (!inEditor) setFocus(false);
   });
 
   // --- IME Composition ---
