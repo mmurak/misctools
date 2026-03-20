@@ -1642,6 +1642,7 @@
   let diagStartSeg = null;      // ドラッグ開始セグメント（横線の右端）
   const DIAG_SNAP_R = 20;       // 端点スナップ半径(px)
   let drawLastClickTime = 0;    // 描画モードダブルクリック検出用
+  let diagStartX = 0;           // 斜線ドラッグ開始x（距離判定用）
 
   // 全セグメントの中から指定座標に最も近い端点を探す
   // 開始点用：右端のみ
@@ -1735,41 +1736,38 @@
     e.preventDefault();
     const {x, y} = canvasCoords(e);
 
-    // ダブルクリック検出（左端付近）→ 横線消去
     const now = Date.now();
     const isDouble = (now - drawLastClickTime) < 400;
     drawLastClickTime = now;
+
+    const nearRight = findNearRightEnd(x, y, DIAG_SNAP_R);
+    const nearLeft  = findNearLeftEnd(x, y, DIAG_SNAP_R);
+
     if (isDouble) {
-      // 右端付近 → 矢印トグル
-      const nearRight = findNearRightEnd(x, y, DIAG_SNAP_R);
+      // ダブルクリック：右端→矢印ON/OFF、左端→消去
       if (nearRight) {
-        const targetStroke = strokes.find(s => s.segments.includes(nearRight.seg));
-        if (targetStroke) {
-          targetStroke.arrow = !targetStroke.arrow;
-          // offset値で方向を決定（arrowAngleはpaintStroke内で計算）
-        }
+        const ts = nearRight.stroke;
+        ts.arrow = !ts.arrow;
         redrawOverlay();
         return;
       }
-      // 左端付近 → 横線消去
-      const nearLeft = findNearLeftEnd(x, y, DIAG_SNAP_R);
       if (nearLeft) {
-        strokes = strokes.map(stroke => ({
-          ...stroke,
-          segments: stroke.segments.filter(seg => seg !== nearLeft.seg)
+        strokes = strokes.map(s => ({
+          ...s,
+          segments: s.segments.filter(seg => seg !== nearLeft.seg)
         })).filter(s => s.segments.length > 0);
         redrawOverlay();
         return;
       }
-    }
-
-    // まず横線の端点付近かどうかチェック → 斜線ドラッグ
-    const near = findNearRightEnd(x, y, DIAG_SNAP_R);
-    if (near) {
-      diagDragging = true;
-      diagStartSeg = near;
-      drawDragging = false;
-      return;
+    } else {
+      // シングルクリック：右端→斜線ドラッグ開始（矢印なしのみ）
+      if (nearRight && !nearRight.stroke.arrow) {
+        diagDragging = true;
+        diagStartSeg = nearRight;
+        diagStartX   = x;
+        drawDragging = false;
+        return;
+      }
     }
 
     // 通常の横線ドラッグ
@@ -1873,6 +1871,9 @@
     if (diagDragging && drawMode) {
       diagDragging = false;
       const {x, y} = canvasCoords(e);
+      // 最小ドラッグ距離チェック（シングルクリックを除外）
+      const dragDist = Math.abs(x - diagStartX);
+      if (dragDist < 10) { redrawOverlay(); return; }
       // 終点付近の端点を探す
       const nearEnd = findNearAnyEnd(x, y, DIAG_SNAP_R);
       if (nearEnd && nearEnd.seg !== diagStartSeg.seg) {
@@ -2060,6 +2061,8 @@
       diagDragging = false;
       const tc = e.changedTouches[0];
       const {x, y} = getTouchCanvasCoords(tc);
+      // 最小ドラッグ距離チェック
+      if (Math.abs(x - diagStartX) < 10) { redrawOverlay(); return; }
       const nearEnd = findNearAnyEnd(x, y, DIAG_SNAP_R);
       if (nearEnd && nearEnd.seg !== diagStartSeg.seg) {
         const s1 = diagStartSeg.seg;
