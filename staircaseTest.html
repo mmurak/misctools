@@ -298,58 +298,6 @@
     white-space: nowrap;
   }
 
-  .line-btns {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-
-  .line-btn {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 1px;
-    color: var(--aged);
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.14);
-    border-radius: 2px;
-    padding: 5px 12px;
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
-    white-space: nowrap;
-  }
-
-  .line-btn:hover {
-    background: rgba(139,58,26,0.3);
-    border-color: rgba(139,58,26,0.6);
-    color: #f5ead8;
-  }
-
-  .line-btn:active {
-    background: rgba(139,58,26,0.55);
-  }
-
-  .line-btn--erase {
-    border-color: rgba(80,80,80,0.4);
-    color: #a09080;
-  }
-
-  .line-btn--diag {
-    border-color: rgba(60,100,180,0.4);
-    color: #90a8c8;
-  }
-
-  .line-btn--diag:hover {
-    background: rgba(30,60,160,0.3);
-    border-color: rgba(80,120,220,0.6);
-    color: #c0d4f0;
-  }
-
-  .line-btn--erase:hover {
-    background: rgba(80,40,20,0.4);
-    border-color: rgba(120,80,50,0.6);
-    color: #d0b090;
-  }
-
   /* ── Position Dialog ── */
   .pos-dialog-overlay {
     display: none;
@@ -544,10 +492,6 @@
 
   .saveload-msg.visible { opacity: 0.7; }
 
-  .line-btn:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
 </style>
 </head>
 <body>
@@ -648,18 +592,8 @@
 
 
   <div class="line-panel" id="line-panel">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-      <span class="panel-label">選択範囲に線を引く</span>
+    <div style="display:flex;align-items:center;gap:10px;">
       <button class="arrow-toggle" id="toggle-draw-mode" title="ドラッグで横線を描画">✏️ 描画モード</button>
-    </div>
-    <div class="line-btns">
-      <button class="line-btn" data-pos="top"     title="行の上端">上端</button>
-      <button class="line-btn" data-pos="upper"   title="文字の上1/4">上寄り</button>
-      <button class="line-btn" data-pos="middle"  title="ベースライン">ベースライン</button>
-      <button class="line-btn" data-pos="lower"   title="ベースライン">下寄り</button>
-      <button class="line-btn" data-pos="bottom"  title="行の下端">下端</button>
-      <button class="line-btn line-btn--diag"  data-pos="diag"  title="直前・直後の横線を斜線でつなぐ">／ 斜線</button>
-      <button class="line-btn line-btn--erase" data-pos="erase" title="最後の線を消去">⌫ 消去</button>
     </div>
   </div>
   <div class="line-panel" id="line-panel-style">
@@ -756,6 +690,7 @@
   // IME composition state
   let isComposing = false;
   let compositionText = '';   // 変換中の仮テキスト
+  let showGuides = true;       // 補助線表示フラグ
 
   // --- Font / Size controls ---
   fontSelect.addEventListener('change', () => { FONT_FACE = fontSelect.value; render(); });
@@ -853,6 +788,36 @@
       const y = MARGIN_TOP + i * LINE_HEIGHT;
       if (y + LINE_HEIGHT < 0 || y > h) continue;
       if (lines[i]) ctx.fillText(lines[i], MARGIN_LEFT, y + FONT_SIZE);
+    }
+
+    // 補助線（テキストの上に描画）
+    if (showGuides) {
+      ctx.save();
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 4]);
+      ctx.lineCap = 'butt';
+      const guideX1 = MARGIN_LEFT;
+      const guideX2 = canvas.width - MARGIN_RIGHT;
+      for (let i = 0; i < lines.length; i++) {
+        const baselineY = MARGIN_TOP + i * LINE_HEIGHT + FONT_SIZE;
+        ['top', 'upper', 'lower', 'bottom'].forEach(key => {
+          ctx.strokeStyle = 'rgba(80,160,220,0.50)';
+          const gy = baselineY + LINE_STYLES[key].offset;
+          ctx.beginPath();
+          ctx.moveTo(guideX1, gy);
+          ctx.lineTo(guideX2, gy);
+          ctx.stroke();
+        });
+        // ベースラインのみ緑色
+        ctx.strokeStyle = 'rgba(40,160,80,0.55)';
+        const bgy = baselineY + LINE_STYLES.middle.offset;
+        ctx.beginPath();
+        ctx.moveTo(guideX1, bgy);
+        ctx.lineTo(guideX2, bgy);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      ctx.restore();
     }
 
     // IME composition preview (変換中テキストを下線付きで表示)
@@ -1404,184 +1369,6 @@
     return segs.length ? segs : null;
   }
 
-  // ボタンイベント
-  document.querySelectorAll('.line-btn').forEach(btn => {
-    // mousedownで修飾キーを確実にキャプチャ（clickより先に発火）
-    btn.addEventListener('mousedown', e => {
-      e.preventDefault();
-      window._shiftHeld = e.shiftKey;
-      window._ctrlHeld  = e.ctrlKey || e.metaKey;
-      // 選択状態を退避
-      window._savedSel = selStart && selEnd
-        ? { start: { ...selStart }, end: { ...selEnd } } : null;
-    });
-
-    // Androidタッチ対応：touchstartで選択退避・キーボード抑制、touchendでclick発火
-    btn.addEventListener('touchstart', e => {
-      e.preventDefault();
-      window._shiftHeld = false;
-      window._ctrlHeld  = false;
-      window._savedSel = selStart && selEnd
-        ? { start: { ...selStart }, end: { ...selEnd } } : null;
-    }, { passive: false });
-    btn.addEventListener('touchend', e => {
-      e.preventDefault();
-      // 選択を復元してからclick
-      if (window._savedSel) {
-        selStart = window._savedSel.start;
-        selEnd   = window._savedSel.end;
-      }
-      btn.click();
-    }, { passive: false });
-
-    btn.addEventListener('click', () => {
-      // touchendから来た場合も選択を復元
-      if (window._savedSel) {
-        selStart = window._savedSel.start;
-        selEnd   = window._savedSel.end;
-        window._savedSel = null;
-      }
-      const pos = btn.dataset.pos;
-
-      if (pos === 'diag') {
-        // 矢印トグルがONなら矢印は描画せずトグル解除のみ
-        if (modeArrow) {
-          modeArrow = false;
-          toggleArrow.classList.remove('active');
-          return;
-        }
-        const flash = () => {
-          btn.style.borderColor = 'rgba(255,80,80,0.7)';
-          setTimeout(() => btn.style.borderColor = '', 500);
-        };
-
-        // 選択なし、または行をまたぐ選択は不可
-        if (!selStart || !selEnd) { flash(); return; }
-        const [sS, sE] = normSel();
-        if (sS.line !== sE.line) { flash(); return; }
-
-        const li = sS.line;
-        const selX1 = Math.min(xFromCol(lines[li], sS.col), xFromCol(lines[li], sE.col));
-        const selX2 = Math.max(xFromCol(lines[li], sS.col), xFromCol(lines[li], sE.col));
-
-        // 同一行のセグメントから直前・直後を探す
-        let prevSeg = null, nextSeg = null;
-
-        strokes.forEach(stroke => {
-          stroke.segments.forEach(seg => {
-            if (seg.lineIndex !== li) return;
-            // 直前：右端が選択左端以下で最も近いもの
-            if (seg.x2 <= selX1 + 4) {
-              if (!prevSeg || seg.x2 > prevSeg.x2) prevSeg = seg;
-            }
-            // 直後：左端が選択右端以上で最も近いもの
-            if (seg.x1 >= selX2 - 4) {
-              if (!nextSeg || seg.x1 < nextSeg.x1) nextSeg = seg;
-            }
-          });
-        });
-
-        if (!prevSeg || !nextSeg) { flash(); return; }
-
-        // 斜線の範囲（prevSeg.x2 〜 nextSeg.x1）に重なる既存の線を消去
-        eraseInRange([{ lineIndex: li, x1: prevSeg.x2, x2: nextSeg.x1 }]);
-
-        diagStrokes.push({
-          x1: prevSeg.x2, y1: prevSeg.y,
-          x2: nextSeg.x1, y2: nextSeg.y,
-          color: LINE_COLOR, lw: resolveShift() ? 6 : 5,
-          arrow: resolveCtrl(),
-          dashed: !resolveShift(),
-          lineIndex: li,       // 斜線が属する行
-          segX1: prevSeg.x2,   // 直前横線の右端x
-          segX2: nextSeg.x1,   // 直後横線の左端x
-        });
-        redrawOverlay();
-        return;
-      }
-
-      if (pos === 'erase') {
-        if (!selStart || !selEnd) {
-          btn.style.borderColor = 'rgba(255,80,80,0.7)';
-          setTimeout(() => btn.style.borderColor = '', 500);
-          return;
-        }
-        const [sS, sE] = normSel();
-
-        // 選択範囲の行・x区間を取得
-        function getSelX(li) {
-          if (li < sS.line || li > sE.line) return null;
-          let selX1, selX2;
-          if (li === sS.line && li === sE.line) {
-            selX1 = xFromCol(lines[li], sS.col);
-            selX2 = xFromCol(lines[li], sE.col);
-          } else if (li === sS.line) {
-            selX1 = xFromCol(lines[li], sS.col);
-            selX2 = Infinity;
-          } else if (li === sE.line) {
-            selX1 = MARGIN_LEFT;
-            selX2 = xFromCol(lines[li], sE.col);
-          } else {
-            selX1 = MARGIN_LEFT;
-            selX2 = Infinity;
-          }
-          if (selX1 > selX2) [selX1, selX2] = [selX2, selX1];
-          return { selX1, selX2 };
-        }
-
-        strokes = strokes.map(stroke => {
-          const newSegs = [];
-          stroke.segments.forEach(seg => {
-            const sx = getSelX(seg.lineIndex);
-            if (!sx) { newSegs.push(seg); return; }
-            const { selX1, selX2 } = sx;
-            if (seg.x2 <= selX1 || seg.x1 >= selX2) { newSegs.push(seg); return; }
-            if (seg.x1 < selX1) newSegs.push({ ...seg, x2: selX1 });
-            if (seg.x2 > selX2) newSegs.push({ ...seg, x1: selX2 });
-          });
-          return { ...stroke, segments: newSegs };
-        }).filter(stroke => stroke.segments.length > 0);
-
-        // 斜線の消去：lineIndexとx範囲で判定（y座標逆算より確実）
-        diagStrokes = diagStrokes.filter(d => {
-          // lineIndexが未保存の古いデータはy座標から逆算
-          const lineIdx = (d.lineIndex !== undefined)
-            ? d.lineIndex
-            : Math.round((d.y1 - MARGIN_TOP) / LINE_HEIGHT);
-          const sx = getSelX(lineIdx);
-          if (!sx) return true; // 選択範囲外の行 → 残す
-          // 斜線のx範囲（segX1〜segX2）が選択範囲と重なれば消去
-          const dX1 = d.segX1 !== undefined ? d.segX1 : Math.min(d.x1, d.x2);
-          const dX2 = d.segX2 !== undefined ? d.segX2 : Math.max(d.x1, d.x2);
-          const overlaps = dX1 < sx.selX2 + 4 && dX2 > sx.selX1 - 4;
-          return !overlaps; // 重なっていれば消去
-        });
-
-        redrawOverlay();
-        return;
-      }
-
-      const style = LINE_STYLES[pos];
-      if (!style) return;
-
-      const segs = buildSegments(style.offset);
-      if (!segs) {
-        btn.style.borderColor = 'rgba(255,80,80,0.7)';
-        setTimeout(() => btn.style.borderColor = '', 500);
-        return;
-      }
-
-      const lw = resolveShift() ? 6 : style.lw;  // 強調:8px 通常:6px
-      const stroke = { segments: segs, color: style.color, lw, arrow: resolveCtrl(), offset: style.offset, dashed: !resolveShift() };
-      eraseInRange(segs);
-      strokes.push(stroke);
-      // 横線描画後に矢印トグルを解除
-      modeArrow = false;
-      toggleArrow.classList.remove('active');
-      redrawOverlay();
-    });
-  });
-
   // ── 描画前消去：新しい線の範囲に重なる既存の線を消去 ──
   function eraseInRange(segs) {
     segs.forEach(newSeg => {
@@ -1729,7 +1516,9 @@
   }
 
   btnPng.addEventListener('click', () => {
-    // テキストcanvasとオーバーレイcanvasを合成して1枚のPNGに
+    // 補助線を非表示にして再描画してからPNG出力
+    showGuides = false;
+    render();
     const merged = document.createElement('canvas');
     merged.width  = canvas.width;
     merged.height = canvas.height;
@@ -1743,6 +1532,9 @@
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    // 補助線を再表示
+    showGuides = true;
+    render();
     showMsg('PNG保存しました');
   });
 
