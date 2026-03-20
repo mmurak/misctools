@@ -8,6 +8,10 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+
+
+
+
   :root {
     --paper: #f0f8ff;
     --ink: #1a1208;
@@ -41,7 +45,6 @@
   }
 
   /* ── Toolbar ── */
-
   .toolbar {
     display: flex;
     align-items: center;
@@ -91,7 +94,6 @@
   }
 
   .custom-select select:hover,
-
   .custom-select select:focus {
     border-color: rgba(139,58,26,0.6);
     background: rgba(255,255,255,0.08);
@@ -150,7 +152,6 @@
   }
   #btn-keyboard:hover { background: rgba(40,120,180,0.55) !important; color: #fff !important; }
   #btn-keyboard.active { background: rgba(40,120,180,0.6); color: #fff; border-color: rgba(40,120,180,0.8); }
-
   .size-btn:active { background: rgba(139,58,26,0.55); }
 
   #btn-pos-settings {
@@ -275,7 +276,6 @@
   }
 
   /* ── Line Panel ── */
-
   .line-panel {
     display: flex;
     align-items: center;
@@ -351,7 +351,6 @@
   }
 
   /* ── Position Dialog ── */
-
   .pos-dialog-overlay {
     display: none;
     position: fixed;
@@ -361,7 +360,6 @@
     align-items: center;
     justify-content: center;
   }
-
   .pos-dialog-overlay.open { display: flex; }
 
   .pos-dialog {
@@ -435,17 +433,14 @@
   }
 
   .pos-dialog-btns button:hover { background: rgba(100,160,200,0.3); }
-
   .pos-dialog-btns button.primary {
     background: rgba(40,120,180,0.6);
     color: #fff;
     border-color: rgba(40,120,180,0.8);
   }
-
   .pos-dialog-btns button.primary:hover { background: rgba(40,120,180,0.8); }
 
   /* ── Mode Toggle ── */
-
   .mode-toggle-group {
     display: flex;
     gap: 0;
@@ -504,7 +499,6 @@
   }
 
   /* ── Save/Load Panel ── */
-
   .saveload-panel {
     display: flex;
     align-items: center;
@@ -652,6 +646,7 @@
   </div>
   <div class="paper-roll-bottom"></div>
 
+
   <div class="line-panel" id="line-panel">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
       <span class="panel-label">選択範囲に線を引く</span>
@@ -695,6 +690,8 @@
 
 <input type="file" id="file-input" accept=".lpe" style="display:none;">
 
+
+
 <script>
 (function() {
   const canvas = document.getElementById('editor-canvas');
@@ -704,6 +701,7 @@
   const wrapper = document.getElementById('canvas-wrapper');
   const toolbar = document.getElementById('toolbar');
   const trap = document.getElementById('input-trap');
+
 
   const focusPrompt = document.getElementById('focus-prompt');
   const fontSelect = document.getElementById('font-select');
@@ -748,11 +746,11 @@
   // ボタンごとの線スタイル設定
   const LINE_COLOR = 'rgba(200,30,30,0.60)';
   const LINE_STYLES = {
-    top:    { offset: -52, color: LINE_COLOR, lw: 6 },
-    upper:  { offset: -33, color: LINE_COLOR, lw: 6 },
-    middle: { offset:   3, color: LINE_COLOR, lw: 6 },
-    lower:  { offset:  30, color: LINE_COLOR, lw: 6 },
-    bottom: { offset:  52, color: LINE_COLOR, lw: 6 },
+    top:    { offset: -52, color: LINE_COLOR, lw: 5 },
+    upper:  { offset: -33, color: LINE_COLOR, lw: 5 },
+    middle: { offset:   3, color: LINE_COLOR, lw: 5 },
+    lower:  { offset:  30, color: LINE_COLOR, lw: 5 },
+    bottom: { offset:  52, color: LINE_COLOR, lw: 5 },
   };
 
   // IME composition state
@@ -829,6 +827,8 @@
     // Paper
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, w, h);
+
+
 
     // Selection
     if (selStart && selEnd) {
@@ -1355,7 +1355,7 @@
         const gap = Math.abs(b.x1 - a.x2);
         const bStartsInsideA = b.x1 >= a.x1 - 4 && b.x1 <= a.x2 + 4;
         if (gap <= 4 || bStartsInsideA) {
-          const lw   = 6;  // 横線の点線と同じ太さ
+          const lw   = 5;  // 横線の点線と同じ太さ
           const isDashed = true; // 縦線は常に点線
           const dash = Math.max(1, lw * 0.8);
           const cgap = Math.max(2, lw * 0.9);
@@ -1409,37 +1409,37 @@
     // mousedownで修飾キーを確実にキャプチャ（clickより先に発火）
     btn.addEventListener('mousedown', e => {
       e.preventDefault();
-      _shiftHeld = e.shiftKey;
-      _ctrlHeld  = e.ctrlKey || e.metaKey;
+      window._shiftHeld = e.shiftKey;
+      window._ctrlHeld  = e.ctrlKey || e.metaKey;
       // 選択状態を退避
-      _savedSel = selStart && selEnd
+      window._savedSel = selStart && selEnd
         ? { start: { ...selStart }, end: { ...selEnd } } : null;
     });
 
     // Androidタッチ対応：touchstartで選択退避・キーボード抑制、touchendでclick発火
     btn.addEventListener('touchstart', e => {
       e.preventDefault();
-      _shiftHeld = false;
-      _ctrlHeld  = false;
-      _savedSel = selStart && selEnd
+      window._shiftHeld = false;
+      window._ctrlHeld  = false;
+      window._savedSel = selStart && selEnd
         ? { start: { ...selStart }, end: { ...selEnd } } : null;
     }, { passive: false });
     btn.addEventListener('touchend', e => {
       e.preventDefault();
       // 選択を復元してからclick
-      if (_savedSel) {
-        selStart = _savedSel.start;
-        selEnd   = _savedSel.end;
+      if (window._savedSel) {
+        selStart = window._savedSel.start;
+        selEnd   = window._savedSel.end;
       }
       btn.click();
     }, { passive: false });
 
     btn.addEventListener('click', () => {
       // touchendから来た場合も選択を復元
-      if (_savedSel) {
-        selStart = _savedSel.start;
-        selEnd   = _savedSel.end;
-        _savedSel = null;
+      if (window._savedSel) {
+        selStart = window._savedSel.start;
+        selEnd   = window._savedSel.end;
+        window._savedSel = null;
       }
       const pos = btn.dataset.pos;
 
@@ -1489,7 +1489,7 @@
         diagStrokes.push({
           x1: prevSeg.x2, y1: prevSeg.y,
           x2: nextSeg.x1, y2: nextSeg.y,
-          color: LINE_COLOR, lw: resolveShift() ? 8 : 6,
+          color: LINE_COLOR, lw: resolveShift() ? 6 : 5,
           arrow: resolveCtrl(),
           dashed: !resolveShift(),
           lineIndex: li,       // 斜線が属する行
@@ -1571,7 +1571,7 @@
         return;
       }
 
-      const lw = resolveShift() ? 8 : style.lw;  // 強調:8px 通常:6px
+      const lw = resolveShift() ? 6 : style.lw;  // 強調:8px 通常:6px
       const stroke = { segments: segs, color: style.color, lw, arrow: resolveCtrl(), offset: style.offset, dashed: !resolveShift() };
       eraseInRange(segs);
       strokes.push(stroke);
@@ -1855,6 +1855,7 @@
   let diagDragging = false;     // 斜線ドラッグ中か
   let diagStartSeg = null;      // ドラッグ開始セグメント（横線の右端）
   const DIAG_SNAP_R = 20;       // 端点スナップ半径(px)
+  let drawLastClickTime = 0;    // 描画モードダブルクリック検出用
 
   // 全セグメントの中から指定座標に最も近い端点を探す
   // 開始点用：右端のみ
@@ -1919,12 +1920,41 @@
     }
   });
 
+  // 左端付近の最も近いセグメントを探す
+  function findNearLeftEnd(x, y, radius) {
+    let best = null, bestDist = radius;
+    strokes.forEach(stroke => {
+      stroke.segments.forEach(seg => {
+        const dl = Math.hypot(x - seg.x1, y - seg.y);
+        if (dl < bestDist) { bestDist = dl; best = { seg, stroke }; }
+      });
+    });
+    return best;
+  }
+
   // 描画モード用マウスイベント（wrapperに追加）
   wrapper.addEventListener('mousedown', (e) => {
     if (!drawMode) return;
     e.stopImmediatePropagation();
     e.preventDefault();
     const {x, y} = canvasCoords(e);
+
+    // ダブルクリック検出（左端付近）→ 横線消去
+    const now = Date.now();
+    const isDouble = (now - drawLastClickTime) < 400;
+    drawLastClickTime = now;
+    if (isDouble) {
+      const nearLeft = findNearLeftEnd(x, y, DIAG_SNAP_R);
+      if (nearLeft) {
+        // このセグメントを含むstrokeからそのセグメントだけ削除
+        strokes = strokes.map(stroke => ({
+          ...stroke,
+          segments: stroke.segments.filter(seg => seg !== nearLeft.seg)
+        })).filter(s => s.segments.length > 0);
+        redrawOverlay();
+        return;
+      }
+    }
 
     // まず横線の端点付近かどうかチェック → 斜線ドラッグ
     const near = findNearRightEnd(x, y, DIAG_SNAP_R);
@@ -1959,7 +1989,17 @@
       const startX = diagStartSeg.side === 'right' ? s.x2 : s.x1;
       const startY = s.y;
       redrawOverlay();
-      drawDiagPreview(startX, startY, x, y);
+      octx.save();
+      octx.strokeStyle = 'rgba(200,30,30,0.5)';
+      octx.lineWidth   = 6;
+      octx.lineCap     = 'butt';
+      octx.setLineDash([Math.max(1, 6*0.8), Math.max(2, 6*0.9)]);
+      octx.beginPath();
+      octx.moveTo(startX, startY);
+      octx.lineTo(x, y);
+      octx.stroke();
+      octx.setLineDash([]);
+      octx.restore();
       return;
     }
     if (!drawDragging || !drawMode) return;
@@ -1978,7 +2018,7 @@
     drawPreviewSeg = { x1: sx1, x2: sx2, y: segY, lineIndex: li };
     // プレビュー描画
     redrawOverlay();
-    const lw = resolveShift() ? 8 : LINE_STYLES.top.lw;
+    const lw = resolveShift() ? 6 : LINE_STYLES.top.lw;
     octx.save();
     octx.strokeStyle = 'rgba(200,30,30,0.5)';
     octx.lineWidth = lw;
@@ -2007,7 +2047,18 @@
         const px2 = nearEnd.side === 'left' ? s2.x1 : s2.x2;  // 終点は左右どちらでも
         const py2 = s2.y;
         const li  = s1.lineIndex;
-        commitDiagStroke(s1, px1, py1, px2, py2);
+        const lw  = resolveShift() ? 6 : 5;
+        diagStrokes.push({
+          x1: px1, y1: py1, x2: px2, y2: py2,
+          color: LINE_COLOR, lw,
+          arrow: resolveCtrl(),
+          dashed: !resolveShift(),
+          lineIndex: s1.lineIndex,
+          segX1: Math.min(px1, px2),
+          segX2: Math.max(px1, px2),
+        });
+        modeArrow = false;
+        toggleArrow.classList.remove('active');
       }
       redrawOverlay();
       return;
@@ -2019,7 +2070,7 @@
     const { x1, x2, y, lineIndex: li } = drawPreviewSeg;
     if (x2 - x1 < 4) { redrawOverlay(); return; } // 短すぎる場合は無視
     const style = LINE_STYLES[OFFSET_SNAP.find(s => s.offset === drawOffset)?.key || 'middle'];
-    const lw = resolveShift() ? 8 : style.lw;
+    const lw = resolveShift() ? 6 : style.lw;
     const seg = { x1, x2, y, lineIndex: li };
     const stroke = {
       segments: [seg],
@@ -2055,34 +2106,6 @@
   let touchSelectAnchor = null;
   let longPressTimer    = null;
   let drawDraggingTouch = false;
-  function drawDiagPreview(startX, startY, x, y) {
-    octx.save();
-    octx.strokeStyle = 'rgba(200,30,30,0.5)';
-    octx.lineWidth   = 6;
-    octx.lineCap     = 'butt';
-    octx.setLineDash([Math.max(1, 6*0.8), Math.max(2, 6*0.9)]);
-    octx.beginPath();
-    octx.moveTo(startX, startY);
-    octx.lineTo(x, y);
-    octx.stroke();
-    octx.setLineDash([]);
-    octx.restore();
-  }
-
-  function commitDiagStroke(s1, px1, py1, px2, py2) {
-    const lw = resolveShift() ? 8 : 6;
-    diagStrokes.push({
-      x1: px1, y1: py1, x2: px2, y2: py2,
-      color: LINE_COLOR, lw,
-      arrow: resolveCtrl(),
-      dashed: !resolveShift(),
-      lineIndex: s1.lineIndex,
-      segX1: Math.min(px1, px2),
-      segX2: Math.max(px1, px2),
-    });
-    modeArrow = false;
-    toggleArrow.classList.remove('active');
-  }
 
   wrapper.addEventListener('touchstart', (e) => {
     if (e.touches.length !== 1) return;
@@ -2146,7 +2169,17 @@
       const startX = diagStartSeg.side === 'right' ? s.x2 : s.x1;
       const startY = s.y;
       redrawOverlay();
-      drawDiagPreview(startX, startY, x, y);
+      octx.save();
+      octx.strokeStyle = 'rgba(200,30,30,0.5)';
+      octx.lineWidth   = 6;
+      octx.lineCap     = 'butt';
+      octx.setLineDash([Math.max(1, 6*0.8), Math.max(2, 6*0.9)]);
+      octx.beginPath();
+      octx.moveTo(startX, startY);
+      octx.lineTo(x, y);
+      octx.stroke();
+      octx.setLineDash([]);
+      octx.restore();
       return;
     }
 
@@ -2163,7 +2196,7 @@
       const sx2  = xFromCol(lines[li], Math.max(col1 + 1, col2));
       drawPreviewSeg = { x1: sx1, x2: sx2, y: segY, lineIndex: li };
       redrawOverlay();
-      const lw = resolveShift() ? 8 : LINE_STYLES.top.lw;
+      const lw = resolveShift() ? 6 : LINE_STYLES.top.lw;
       octx.save();
       octx.strokeStyle = 'rgba(200,30,30,0.5)';
       octx.lineWidth   = lw;
@@ -2210,7 +2243,18 @@
         const px2 = nearEnd.side === 'left' ? s2.x1 : s2.x2;  // 終点は左右どちらでも
         const py2 = s2.y;
         const li  = s1.lineIndex;
-        commitDiagStroke(s1, px1, py1, px2, py2);
+        const lw  = resolveShift() ? 6 : 5;
+        diagStrokes.push({
+          x1: px1, y1: py1, x2: px2, y2: py2,
+          color: LINE_COLOR, lw,
+          arrow: resolveCtrl(),
+          dashed: !resolveShift(),
+          lineIndex: s1.lineIndex,
+          segX1: Math.min(px1, px2),
+          segX2: Math.max(px1, px2),
+        });
+        modeArrow = false;
+        toggleArrow.classList.remove('active');
       }
       redrawOverlay();
       return;
@@ -2223,7 +2267,7 @@
       const { x1, x2, y, lineIndex: li } = drawPreviewSeg;
       if (x2 - x1 < 4) { redrawOverlay(); return; }
       const style = LINE_STYLES[OFFSET_SNAP.find(s => s.offset === drawOffset)?.key || 'middle'];
-      const lw    = resolveShift() ? 8 : style.lw;
+      const lw    = resolveShift() ? 6 : style.lw;
       const seg   = { x1, x2, y, lineIndex: li };
       const stroke = {
         segments: [seg], color: LINE_COLOR, lw,
@@ -2260,15 +2304,15 @@
     el.addEventListener('touchstart', e => {
       e.preventDefault();
       suppressKeyboard = true;
-      _savedSelStart = selStart ? { ...selStart } : null;
-      _savedSelEnd   = selEnd   ? { ...selEnd   } : null;
+      window._savedSelStart = selStart ? { ...selStart } : null;
+      window._savedSelEnd   = selEnd   ? { ...selEnd   } : null;
     }, { passive: false });
     el.addEventListener('touchend', e => {
       e.preventDefault();
-      if (_savedSelStart !== undefined) selStart = _savedSelStart;
-      if (_savedSelEnd   !== undefined) selEnd   = _savedSelEnd;
-      _savedSelStart = undefined;
-      _savedSelEnd   = undefined;
+      if (window._savedSelStart !== undefined) selStart = window._savedSelStart;
+      if (window._savedSelEnd   !== undefined) selEnd   = window._savedSelEnd;
+      window._savedSelStart = undefined;
+      window._savedSelEnd   = undefined;
       el.click();
       render();
       // 少し後にフラグを戻す（click処理完了後）
@@ -2285,15 +2329,15 @@
   function addSelGuardTouch(el) {
     el.addEventListener('touchstart', e => {
       e.preventDefault();
-      _savedSel = selStart && selEnd
+      window._savedSel = selStart && selEnd
         ? { start: { ...selStart }, end: { ...selEnd } } : null;
     }, { passive: false });
     el.addEventListener('touchend', e => {
       e.preventDefault();
-      if (_savedSel) {
-        selStart = _savedSel.start;
-        selEnd   = _savedSel.end;
-        _savedSel = null;
+      if (window._savedSel) {
+        selStart = window._savedSel.start;
+        selEnd   = window._savedSel.end;
+        window._savedSel = null;
       }
       el.click();
     }, { passive: false });
@@ -2320,27 +2364,22 @@
   });
 
   // キーボード修飾キーが押されている場合はそちらを優先
-  function resolveShift() { return _shiftHeld || modeStrong; }
-  function resolveCtrl()  { return _ctrlHeld  || modeArrow;  }
+  function resolveShift() { return window._shiftHeld || modeStrong; }
+  function resolveCtrl()  { return window._ctrlHeld  || modeArrow;  }
   // Shiftキー状態追跡
-  // 修飾キー状態
-  let _shiftHeld = false;
-  let _ctrlHeld  = false;
-  // ボタンタッチ時の選択退避
-  let _savedSel = null;
-  let _savedSelStart = null;
-  let _savedSelEnd   = null;
+  window._shiftHeld = false;
+  window._ctrlHeld  = false;
   window.addEventListener('keydown', e => {
-    if (e.key === 'Shift') _shiftHeld = true;
+    if (e.key === 'Shift') window._shiftHeld = true;
     // Control / Meta(Command) / Alt(Option) のいずれかでctrl扱い
-    if (e.key === 'Control' || e.key === 'Meta') _ctrlHeld = true;
+    if (e.key === 'Control' || e.key === 'Meta') window._ctrlHeld = true;
   });
   window.addEventListener('keyup', e => {
-    if (e.key === 'Shift') _shiftHeld = false;
-    if (e.key === 'Control' || e.key === 'Meta') _ctrlHeld = false;
+    if (e.key === 'Shift') window._shiftHeld = false;
+    if (e.key === 'Control' || e.key === 'Meta') window._ctrlHeld = false;
   });
   // ウィンドウがフォーカスを失ったときにフラグをリセット
-  window.addEventListener('blur', () => { _shiftHeld = false; _ctrlHeld = false; });
+  window.addEventListener('blur', () => { window._shiftHeld = false; window._ctrlHeld = false; });
 
 })();
 </script>
