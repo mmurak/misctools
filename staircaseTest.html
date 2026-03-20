@@ -592,18 +592,13 @@
 
 
   <div class="line-panel" id="line-panel">
-    <div style="display:flex;align-items:center;gap:10px;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <button class="arrow-toggle" id="toggle-draw-mode" title="ドラッグで横線を描画">✏️ 描画モード</button>
-    </div>
-  </div>
-  <div class="line-panel" id="line-panel-style">
-    <div style="display:flex;align-items:center;gap:10px;">
-      <span class="panel-label">スタイル</span>
+      <span class="panel-label" style="margin-left:8px;">スタイル</span>
       <div class="mode-toggle-group">
         <button class="mode-toggle active" id="toggle-normal" title="点線（通常）">○ 通常</button>
         <button class="mode-toggle"        id="toggle-strong" title="実線・太線（強調）">● 強調</button>
       </div>
-      <button class="arrow-toggle" id="toggle-arrow" title="矢印付き">→ 矢印</button>
     </div>
   </div>
   <div class="key-hint">
@@ -1626,7 +1621,6 @@
   // ── モードトグル ──────────────────────────
   const toggleNormal = document.getElementById('toggle-normal');
   const toggleStrong = document.getElementById('toggle-strong');
-  const toggleArrow  = document.getElementById('toggle-arrow');
 
   // トグル状態（キーボード修飾キーより優先度低い：キー押下時は上書き）
   let modeStrong = false;  // true=強調(実線・太), false=通常(点線)
@@ -1713,6 +1707,16 @@
   });
 
   // 左端付近の最も近いセグメントを探す
+  // 横線セグメントをx座標まで右側に伸ばす（文字境界にスナップ）
+  function extendSegRight(seg, x) {
+    const li = seg.lineIndex;
+    const col = colFromX(lines[li], x);
+    const newX2 = xFromCol(lines[li], col + 1);
+    if (newX2 > seg.x2) {
+      seg.x2 = newX2;
+    }
+  }
+
   function findNearLeftEnd(x, y, radius) {
     let best = null, bestDist = radius;
     strokes.forEach(stroke => {
@@ -1736,9 +1740,20 @@
     const isDouble = (now - drawLastClickTime) < 400;
     drawLastClickTime = now;
     if (isDouble) {
+      // 右端付近 → 矢印トグル
+      const nearRight = findNearRightEnd(x, y, DIAG_SNAP_R);
+      if (nearRight) {
+        const targetStroke = strokes.find(s => s.segments.includes(nearRight.seg));
+        if (targetStroke) {
+          targetStroke.arrow = !targetStroke.arrow;
+          // offset値で方向を決定（arrowAngleはpaintStroke内で計算）
+        }
+        redrawOverlay();
+        return;
+      }
+      // 左端付近 → 横線消去
       const nearLeft = findNearLeftEnd(x, y, DIAG_SNAP_R);
       if (nearLeft) {
-        // このセグメントを含むstrokeからそのセグメントだけ削除
         strokes = strokes.map(stroke => ({
           ...stroke,
           segments: stroke.segments.filter(seg => seg !== nearLeft.seg)
@@ -1824,6 +1839,35 @@
     octx.restore();
   });
 
+  function commitDiagStroke(s1, px1, py1, px2, py2) {
+    const lw = resolveShift() ? 6 : 5;
+    diagStrokes.push({
+      x1: px1, y1: py1, x2: px2, y2: py2,
+      color: LINE_COLOR, lw,
+      arrow: resolveCtrl(),
+      dashed: !resolveShift(),
+      lineIndex: s1.lineIndex,
+      segX1: Math.min(px1, px2),
+      segX2: Math.max(px1, px2),
+    });
+    modeArrow = false;
+  }
+
+  function drawDiagPreview(startX, startY, x, y) {
+    const lw = 5;
+    octx.save();
+    octx.strokeStyle = 'rgba(200,30,30,0.5)';
+    octx.lineWidth   = lw;
+    octx.lineCap     = 'butt';
+    octx.setLineDash([Math.max(1, lw * 0.8), Math.max(2, lw * 0.9)]);
+    octx.beginPath();
+    octx.moveTo(startX, startY);
+    octx.lineTo(x, y);
+    octx.stroke();
+    octx.setLineDash([]);
+    octx.restore();
+  }
+
   window.addEventListener('mouseup', (e) => {
     // 斜線ドラッグ確定
     if (diagDragging && drawMode) {
@@ -1834,23 +1878,14 @@
       if (nearEnd && nearEnd.seg !== diagStartSeg.seg) {
         const s1 = diagStartSeg.seg;
         const s2 = nearEnd.seg;
-        const px1 = s1.x2;  // 開始点は常に右端
+        const px1 = s1.x2;
         const py1 = s1.y;
-        const px2 = nearEnd.side === 'left' ? s2.x1 : s2.x2;  // 終点は左右どちらでも
+        const px2 = nearEnd.side === 'left' ? s2.x1 : s2.x2;
         const py2 = s2.y;
-        const li  = s1.lineIndex;
-        const lw  = resolveShift() ? 6 : 5;
-        diagStrokes.push({
-          x1: px1, y1: py1, x2: px2, y2: py2,
-          color: LINE_COLOR, lw,
-          arrow: resolveCtrl(),
-          dashed: !resolveShift(),
-          lineIndex: s1.lineIndex,
-          segX1: Math.min(px1, px2),
-          segX2: Math.max(px1, px2),
-        });
-        modeArrow = false;
-        toggleArrow.classList.remove('active');
+        commitDiagStroke(s1, px1, py1, px2, py2);
+      } else {
+        // 終点が横線に届かなかった → ドラッグ先まで元の横線を伸ばす
+        extendSegRight(diagStartSeg.seg, x);
       }
       redrawOverlay();
       return;
@@ -1877,7 +1912,6 @@
     drawPreviewSeg = null;
     // 横線描画後に矢印トグルを解除
     modeArrow = false;
-    toggleArrow.classList.remove('active');
     redrawOverlay();
   });
 
@@ -2030,23 +2064,14 @@
       if (nearEnd && nearEnd.seg !== diagStartSeg.seg) {
         const s1 = diagStartSeg.seg;
         const s2 = nearEnd.seg;
-        const px1 = s1.x2;  // 開始点は常に右端
+        const px1 = s1.x2;
         const py1 = s1.y;
-        const px2 = nearEnd.side === 'left' ? s2.x1 : s2.x2;  // 終点は左右どちらでも
+        const px2 = nearEnd.side === 'left' ? s2.x1 : s2.x2;
         const py2 = s2.y;
-        const li  = s1.lineIndex;
-        const lw  = resolveShift() ? 6 : 5;
-        diagStrokes.push({
-          x1: px1, y1: py1, x2: px2, y2: py2,
-          color: LINE_COLOR, lw,
-          arrow: resolveCtrl(),
-          dashed: !resolveShift(),
-          lineIndex: s1.lineIndex,
-          segX1: Math.min(px1, px2),
-          segX2: Math.max(px1, px2),
-        });
-        modeArrow = false;
-        toggleArrow.classList.remove('active');
+        commitDiagStroke(s1, px1, py1, px2, py2);
+      } else {
+        // 終点が横線に届かなかった → ドラッグ先まで元の横線を伸ばす
+        extendSegRight(diagStartSeg.seg, x);
       }
       redrawOverlay();
       return;
@@ -2070,7 +2095,6 @@
       strokes.push(stroke);
       drawPreviewSeg = null;
       modeArrow = false;
-      toggleArrow.classList.remove('active');
       redrawOverlay();
     } else if (!drawMode && !touchSelectMode) {
       // 短いタップ → カーソル移動
@@ -2114,7 +2138,6 @@
 
   addTouchSelectionGuard(toggleNormal);
   addTouchSelectionGuard(toggleStrong);
-  addTouchSelectionGuard(toggleArrow);
   addTouchSelectionGuard(toggleDrawMode);
 
   // スタイル・矢印トグルにタッチガードを適用
@@ -2136,7 +2159,6 @@
   }
   addSelGuardTouch(toggleNormal);
   addSelGuardTouch(toggleStrong);
-  addSelGuardTouch(toggleArrow);
 
   toggleNormal.addEventListener('click', () => {
     modeStrong = false;
@@ -2150,14 +2172,11 @@
     toggleNormal.classList.remove('active');
   });
 
-  toggleArrow.addEventListener('click', () => {
-    modeArrow = !modeArrow;
-    toggleArrow.classList.toggle('active', modeArrow);
-  });
+
 
   // キーボード修飾キーが押されている場合はそちらを優先
   function resolveShift() { return window._shiftHeld || modeStrong; }
-  function resolveCtrl()  { return window._ctrlHeld  || modeArrow;  }
+  function resolveCtrl()  { return window._ctrlHeld; }
   // Shiftキー状態追跡
   window._shiftHeld = false;
   window._ctrlHeld  = false;
