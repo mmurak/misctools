@@ -1640,7 +1640,7 @@
   // 斜線ドラッグ用
   let diagDragging = false;     // 斜線ドラッグ中か
   let diagStartSeg = null;      // ドラッグ開始セグメント（横線の右端）
-  const DIAG_SNAP_R = 20;       // 端点スナップ半径(px)
+  const DIAG_SNAP_R = 10;       // 端点スナップ半径(px)
   let drawLastClickTime = 0;    // 描画モードダブルクリック検出用
   let diagStartX = 0;           // 斜線ドラッグ開始x（距離判定用）
 
@@ -1744,18 +1744,28 @@
     const nearLeft  = findNearLeftEnd(x, y, DIAG_SNAP_R);
 
     if (isDouble) {
-      // ダブルクリック：右端→矢印ON/OFF、左端→消去
-      if (nearRight) {
-        const ts = nearRight.stroke;
-        ts.arrow = !ts.arrow;
+      // 接続部分（右端と左端が近接）では左端消去を優先
+      if (nearLeft && nearRight && nearLeft.seg !== nearRight.seg) {
+        // 直前の右端と直後の左端が同座標 → 後ろの横線を消去
+        strokes = strokes.map(s => ({
+          ...s,
+          segments: s.segments.filter(seg => seg !== nearLeft.seg)
+        })).filter(s => s.segments.length > 0);
         redrawOverlay();
         return;
       }
+      // 左端のみ → 消去
       if (nearLeft) {
         strokes = strokes.map(s => ({
           ...s,
           segments: s.segments.filter(seg => seg !== nearLeft.seg)
         })).filter(s => s.segments.length > 0);
+        redrawOverlay();
+        return;
+      }
+      // 右端のみ → 矢印ON/OFF
+      if (nearRight) {
+        nearRight.stroke.arrow = !nearRight.stroke.arrow;
         redrawOverlay();
         return;
       }
@@ -1885,8 +1895,25 @@
         const py2 = s2.y;
         commitDiagStroke(s1, px1, py1, px2, py2);
       } else {
-        // 終点が横線に届かなかった → ドラッグ先まで元の横線を伸ばす
-        extendSegRight(diagStartSeg.seg, x);
+        // 終点が横線に届かなかった
+        const existingStroke = diagStartSeg.stroke;
+        const sameStyle = existingStroke.dashed === !resolveShift();
+        if (sameStyle) {
+          // 同じスタイル → 既存横線を右に伸ばす
+          extendSegRight(diagStartSeg.seg, x);
+        } else {
+          // 異なるスタイル → 既存の右端から新規横線として描画
+          const s1 = diagStartSeg.seg;
+          const li = s1.lineIndex;
+          const col = colFromX(lines[li], x);
+          const newX2 = xFromCol(lines[li], col + 1);
+          if (newX2 > s1.x2) {
+            const lw  = resolveShift() ? 6 : LINE_STYLES[OFFSET_SNAP.find(s => s.offset === s1.y - (MARGIN_TOP + li * LINE_HEIGHT + FONT_SIZE))?.key || 'middle'].lw;
+            const seg = { x1: s1.x2, x2: newX2, y: s1.y, lineIndex: li };
+            eraseInRange([seg]);
+            strokes.push({ segments: [seg], color: LINE_COLOR, lw, arrow: false, offset: s1.y - (MARGIN_TOP + li * LINE_HEIGHT + FONT_SIZE), dashed: !resolveShift() });
+          }
+        }
       }
       redrawOverlay();
       return;
@@ -2073,8 +2100,22 @@
         const py2 = s2.y;
         commitDiagStroke(s1, px1, py1, px2, py2);
       } else {
-        // 終点が横線に届かなかった → ドラッグ先まで元の横線を伸ばす
-        extendSegRight(diagStartSeg.seg, x);
+        // 終点が横線に届かなかった
+        const existingStroke = diagStartSeg.stroke;
+        const sameStyle = existingStroke.dashed === !resolveShift();
+        if (sameStyle) {
+          extendSegRight(diagStartSeg.seg, x);
+        } else {
+          const s1 = diagStartSeg.seg;
+          const li = s1.lineIndex;
+          const col = colFromX(lines[li], x);
+          const newX2 = xFromCol(lines[li], col + 1);
+          if (newX2 > s1.x2) {
+            const seg = { x1: s1.x2, x2: newX2, y: s1.y, lineIndex: li };
+            eraseInRange([seg]);
+            strokes.push({ segments: [seg], color: LINE_COLOR, lw: resolveShift() ? 6 : 5, arrow: false, offset: s1.y - (MARGIN_TOP + li * LINE_HEIGHT + FONT_SIZE), dashed: !resolveShift() });
+          }
+        }
       }
       redrawOverlay();
       return;
