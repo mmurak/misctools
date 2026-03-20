@@ -1969,14 +1969,48 @@
     const {x, y} = getTouchCanvasCoords(t);
 
     if (drawMode) {
-      // 端点付近なら斜線ドラッグ
-      const nearTouch = findNearRightEnd(x, y, DIAG_SNAP_R);
-      if (nearTouch) {
-        diagDragging = true;
-        diagStartSeg = nearTouch;
-        drawDragging = false;
-        return;
+      // ダブルタップ検出（mousedownと共通のdrawLastClickTimeを使用）
+      const nowT = Date.now();
+      const isDoubleT = (nowT - drawLastClickTime) < 400;
+      drawLastClickTime = nowT;
+
+      const nearRight = findNearRightEnd(x, y, DIAG_SNAP_R);
+      const nearLeft  = findNearLeftEnd(x, y, DIAG_SNAP_R);
+
+      if (isDoubleT) {
+        // 接続部分（右端と左端が近接）→ 後ろの横線を消去
+        if (nearLeft && nearRight && nearLeft.seg !== nearRight.seg) {
+          strokes = strokes.map(s => ({
+            ...s, segments: s.segments.filter(seg => seg !== nearLeft.seg)
+          })).filter(s => s.segments.length > 0);
+          redrawOverlay();
+          return;
+        }
+        // 左端のみ → 消去
+        if (nearLeft) {
+          strokes = strokes.map(s => ({
+            ...s, segments: s.segments.filter(seg => seg !== nearLeft.seg)
+          })).filter(s => s.segments.length > 0);
+          redrawOverlay();
+          return;
+        }
+        // 右端のみ → 矢印ON/OFF
+        if (nearRight) {
+          nearRight.stroke.arrow = !nearRight.stroke.arrow;
+          redrawOverlay();
+          return;
+        }
+      } else {
+        // シングルタップ：右端（矢印なし）→ 斜線ドラッグ開始
+        if (nearRight && !nearRight.stroke.arrow) {
+          diagDragging = true;
+          diagStartSeg = nearRight;
+          diagStartX   = x;
+          drawDragging = false;
+          return;
+        }
       }
+
       // 通常の横線ドラッグ
       const topOffset    = Math.min(...Object.values(LINE_STYLES).map(s => s.offset));
       const bottomOffset = Math.max(...Object.values(LINE_STYLES).map(s => s.offset));
