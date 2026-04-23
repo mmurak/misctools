@@ -13,12 +13,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('myUnifiedForm');
   const formDash = document.getElementById('myUnifiedForm2');
 
+/*
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Enter' && !event.isComposing) {
         // デフォルトのEnterキーの動作（改行やタブ移動）を無効化
         event.preventDefault(); 
     }
 });
+*/
 
   form.addEventListener('keydown', function(event) {
     // Enterキーが押された、かつかな漢字変換中ではないことを確認
