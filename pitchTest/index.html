@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>SwiftF0 Pitch Tracker</title>
+		<link rel="shortcut icon" href="./Kiwi-bird-green.png">
+		<link rel="stylesheet" href="./pitch_tracker.css">
+	</head>
+	<body>
+		<div class="app">
+			<header>
+				<div class="title-block">
+					<h1><span class="f0">Swift</span>F0 Pitch Tracker</h1>
+					<p class="subtitle">client-side monophonic pitch estimation — WebAssembly + ONNX Runtime</p>
+				</div>
+				<div class="badge" id="statusBadge"><span class="dot"></span><span id="statusText">読み込み中</span></div>
+			</header>
+
+			<div class="panel controls">
+				<button class="btn primary" id="micBtn">
+					<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+					<span id="micBtnLabel">マイクで計測</span>
+				</button>
+				<button class="btn" id="fileBtn">
+					<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+					<span>音声ファイルを解析</span>
+				</button>
+				<input type="file" id="fileInput" accept="audio/*">
+				<button class="btn exit" id="stopBtn" disabled>停止</button>
+
+				<div class="settings">
+					<div class="field">
+						<label id="ConfDefault">confidence ≧</label>
+						<div class="range-row">
+							<input type="range" id="confSlider" min="0" max="0.99" step="0.01" value="0.9">
+							<span id="confVal">0.90</span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="panel chart-panel">
+				<div class="chart-head">
+					<div class="label">
+						<span class="legend"><span class="swatch v"></span>F0 (voiced)</span>
+					</div>
+					<div class="label" id="rangeReadout">46.9 – 2093.8 Hz</div>
+				</div>
+				<div id="chartWrap">
+					<canvas id="chart" height="360"></canvas>
+				</div>
+				<div class="status-row">
+					<span id="statusMsg">SwiftF0モデル(約390KB)を初期化しています…</span>
+					<div id="progressWrap">
+						<div id="progressBar"></div>
+					</div>
+				</div>
+			</div>
+
+			<footer>SwiftF0 by Lars Nieradzik (MIT License) · 音声はブラウザ内でのみ処理され、外部へは送信されません</footer>
+		</div>
+
+		<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+		<script type="module" src="./pitch_tracker.js"></script>
+
+	</body>
+</html>
