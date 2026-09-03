@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pitch Monitor</title>
+<style>
+  :root {
+    --bg: #0B1418;
+    --panel: #101B21;
+    --panel-border: #1E2E35;
+    --grid: #1C2B32;
+    --text: #E7EEF0;
+    --text-dim: #7C8D93;
+    --accent: #F2A65A;
+    --accent-dim: #7A5730;
+    --voiced: #4FC8B0;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  body {
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+  .app {
+    width: 100%;
+    max-width: 760px;
+  }
+  header {
+    margin-bottom: 24px;
+  }
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    letter-spacing: 0.2px;
+  }
+  header p {
+    margin: 0;
+    color: var(--text-dim);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  /* ---- チャート表示: 仮想スクロール ----
+     キャンバス自体の物理サイズは常に「画面に見えている幅」だけに固定する。
+     録音時間が長くなっても巨大なキャンバスを作らないようにするための構成。
+     .chart-spacer は高さ1pxの透明な要素で、幅だけを録音時間分に広げることで
+     ネイティブのスクロールバー・スクロール範囲だけを提供する(見た目には出ない)。
+     .chart-stack は position:sticky でスクロール中も常に見えている左端に
+     貼り付いたままになり、中の各キャンバスは「今スクロールしている時間帯」の
+     内容をJS側で都度計算して描画する。 */
+  .chart-scroll {
+    position: relative;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-radius: 6px;
+  }
+  .chart-spacer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 1px;
+    pointer-events: none;
+  }
+  .chart-stack {
+    position: sticky;
+    top: 0;
+    left: 0;
+  }
+  canvas#chart,
+  canvas#chartOverlay,
+  canvas#playhead {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: block;
+  }
+  canvas#chart {
+    border-radius: 6px;
+  }
+  canvas#chartOverlay {
+    touch-action: none;
+    cursor: grab;
+  }
+  canvas#chartOverlay.dragging {
+    cursor: grabbing;
+  }
+  canvas#playhead {
+    pointer-events: none;
+  }
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .readout {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--panel-border);
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+  .player-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  button#recordBtn {
+    background: var(--accent);
+    color: #211305;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button#recordBtn:hover { background: #F5B879; }
+  button#recordBtn:active { transform: scale(0.98); }
+  button#recordBtn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  button#recordBtn.recording {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--panel-border);
+  }
+  .play-btn {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .play-btn:hover { border-color: var(--accent-dim); }
+  .play-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .play-btn.playing {
+    background: var(--accent);
+    color: #211305;
+    border: none;
+  }
+  .rate-control {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .rate-control input[type="range"] {
+    width: 90px;
+    accent-color: var(--accent);
+  }
+  .rate-control span {
+    font-variant-numeric: tabular-nums;
+    min-width: 42px;
+  }
+  .range-controls {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .range-controls label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .range-controls input {
+    width: 64px;
+    background: #0E181D;
+    border: 1px solid var(--panel-border);
+    color: var(--text);
+    border-radius: 4px;
+    padding: 5px 6px;
+    font-size: 13px;
+  }
+  .status {
+    margin-left: auto;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .status.error { color: #E27878; }
+  .file-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--panel-border);
+  }
+  .file-button {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 9px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .file-button:hover { border-color: var(--accent-dim); }
+  .file-button.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .file-name {
+    font-size: 13px;
+    color: var(--text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <h1>Pitch Monitor</h1>
+    <p>マイクの録音、または音声ファイルを丸ごとRAPT方式で解析し、ピッチ(基本周波数)の変化をグラフに表示します。ファイル(青)とマイク録音(オレンジ)を重ねて比較できます。</p>
+  </header>
+
+  <div class="panel">
+    <div class="chart-scroll" id="chartScroll">
+      <div class="chart-spacer" id="chartSpacer"></div>
+      <div class="chart-stack" id="chartStack">
+        <canvas id="chart"></canvas>
+        <canvas id="chartOverlay"></canvas>
+        <canvas id="playhead"></canvas>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i style="background:#43A9FF"></i>ファイル</span>
+      <span><i style="background:#F2A65A"></i>マイク</span>
+    </div>
+    <div class="readout" id="status">録音するか、音声ファイルを選択してください</div>
+  </div>
+
+  <div class="controls">
+    <button id="recordBtn">録音開始</button>
+
+    <div class="player-group">
+      <button id="filePlayBtn" class="play-btn" disabled>ファイルを再生</button>
+      <div class="rate-control">
+        <label for="fileRate">速度</label>
+        <input type="range" id="fileRate" min="0.5" max="1.5" step="0.05" value="1">
+        <span id="fileRateValue">1.00x</span>
+      </div>
+    </div>
+
+    <div class="player-group">
+      <button id="micPlayBtn" class="play-btn" disabled>マイクを再生</button>
+      <div class="rate-control">
+        <label for="micRate">速度</label>
+        <input type="range" id="micRate" min="0.5" max="1.5" step="0.05" value="1">
+        <span id="micRateValue">1.00x</span>
+      </div>
+    </div>
+
+    <div class="range-controls">
+      <label>下限 <input type="number" id="lowFreq" value="70" min="40" max="250" step="5"> Hz</label>
+      <label>上限 <input type="number" id="highFreq" value="350" min="150" max="600" step="5"> Hz</label>
+    </div>
+  </div>
+
+  <div class="file-controls">
+    <label for="audioFileInput" class="file-button" id="fileButtonLabel">音声ファイルを解析</label>
+    <input type="file" id="audioFileInput" accept="audio/*" hidden>
+    <span class="file-name" id="fileNameLabel"></span>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// RaptPitchTracker
+// Talkin (1995) の RAPT (Robust Algorithm for Pitch Tracking) の
+// 中核アイデアを実装したもの:
+// ・低解像度(ダウンサンプリング)での粗探索でおおよその周期候補を絞り込み、
+//   その周辺だけフル解像度で精密化する2段階のNCCF計算(高速化)
+// ・1フレームにつき複数の候補ピークを残し、フレーム間を動的計画法(Viterbi)で
+//   つないで最も自然なピッチの経路を選ぶ
+// ・相関値だけでなく、フレームのエネルギー(録音全体のノイズフロアに対するSNR)
+//   も有声/無声判定に加味し、ノイズの偶然の相関や、小さい声の母音の
+//   立ち上がり/終わりの誤判定を減らす
+// ・倍周期(オクターブ下)誤りの抑制はlag_weight(周期に比例するペナルティ)で行う。
+//   相関値そのものは歪めず、動的計画法のコスト側に加算する点が特徴
+// ============================================================
+class RaptPitchTracker {
+  constructor({ fMin, fMax, sampleRate, frameStepSec = 0.01, numCandidates = 4, downsampleFactor = 4 }) {
+    this.sampleRate = sampleRate;
+    this.periodMin = Math.round(sampleRate / fMax);
+    this.periodMax = Math.round(sampleRate / fMin);
+    this.frameStepSec = frameStepSec;      // フレーム間隔(秒)。0.01=100フレーム/秒
+    this.numCandidates = numCandidates;    // 1フレームあたり保持する候補ピークの数
+    this.windowSize = Math.max(1024, this.periodMax * 3); // 自己相関に使う窓の長さ
+
+    // コスト関数のパラメータ(値が小さいほど「そのつながりを許容しやすい」)
+    this.UNVOICED_COST = 0.5;              // 「無声」候補の基準コスト(相関0.5相当)
+    this.VOICED_UNVOICED_TRANSITION = 0.3; // 有声⇔無声の切り替えに課すコスト(ちらつき防止)
+    this.FREQ_JUMP_WEIGHT = 0.02;          // フレーム間のピッチジャンプ(半音^2)に課すコストの重み
+
+    // lag_weight: 周期(period)が長い(=周波数が低い)候補ほど線形に不利にするペナルティ。
+    // Talkin(1995)のRAPT本来の方式。相関値そのものは歪めず、動的計画法のコスト側に
+    // 加算する点が、以前の「fLow〜fHighを優先する放物線バイアス」と異なる。
+    // 想定音域(fLow/fHigh)を指定しなくても、倍周期(オクターブ下)誤りを
+    // 「同程度の相関なら短い周期を機械的に優先する」という単純なルールで抑制できる。
+    this.LAG_WEIGHT = 0.3;
+
+    // ---- 有声/無声判定へのエネルギー(SNR)加味 ----
+    // 相関値だけで判定すると、背景ノイズの偶然の相関を有声と誤判定したり、
+    // 逆に小さい声の母音の立ち上がり/終わりを無声と誤判定したりしやすい。
+    // フレームのRMSエネルギーを「録音全体のノイズフロア」と比較したSNRを求め、
+    // SNRが低いフレームは無声に、高いフレームは有声に判定を寄せる。
+    this.SNR_LOW_DB = 3;             // このSNR以下では明確に無声寄りに倒す
+    this.SNR_HIGH_DB = 20;           // このSNR以上では明確に有声寄りに倒す
+    this.VOICING_ENERGY_WEIGHT = 0.15; // SNRによる補正コストの最大幅
+
+    // ---- 2段階NCCF(粗探索→精密化)のパラメータ ----
+    // periodMinが小さすぎる(高い声域を広く取っている)場合、ダウンサンプリング率が
+    // 粗すぎて短い周期を見失わないよう、「periodMinの1/4以下」を上限にDを自動的に抑える
+    this.D = Math.max(1, Math.min(downsampleFactor, Math.floor(this.periodMin / 4) || 1));
+    this.periodMinDs = Math.max(1, Math.floor(this.periodMin / this.D));
+    this.periodMaxDs = Math.max(this.periodMinDs + 1, Math.round(this.periodMax / this.D));
+    this.windowSizeDs = Math.max(32, Math.round(this.windowSize / this.D));
+  }
+
+  // 全体を1回だけダウンサンプリングしておく(単純な区間平均によるデシメーション)
+  _downsample(signal, D) {
+    if (D <= 1) return signal;
+    const outLen = Math.floor(signal.length / D);
+    const out = new Float32Array(outLen);
+    for (let i = 0; i < outLen; i++) {
+      let sum = 0;
+      const base = i * D;
+      for (let j = 0; j < D; j++) sum += signal[base + j];
+      out[i] = sum / D;
+    }
+    return out;
+  }
+
+  // 粗探索: ダウンサンプリングした窓で自己相関を計算し、有望なピークを荒く見つける
+  // (相関値そのものは歪めない。倍周期の抑制はlag_weightとしてコスト側で行う)
+  _coarsePeaks(dsFrame) {
+    const corr = new Float32Array(this.periodMaxDs + 1);
+    for (let period = this.periodMinDs; period <= this.periodMaxDs; period++) {
+      let cross = 0, energyA = 0, energyB = 0;
+      const limit = dsFrame.length - period;
+      for (let i = 0; i < limit; i++) {
+        cross += dsFrame[i] * dsFrame[i + period];
+        energyA += dsFrame[i] * dsFrame[i];
+        energyB += dsFrame[i + period] * dsFrame[i + period];
+      }
+      if (energyA > 0 && energyB > 0) {
+        corr[period] = cross / Math.sqrt(energyA * energyB);
+      }
+    }
+
+    const peaks = [];
+    for (let p = this.periodMinDs + 1; p < this.periodMaxDs; p++) {
+      if (corr[p] > 0 && corr[p] >= corr[p - 1] && corr[p] >= corr[p + 1]) {
+        peaks.push({ period: p, corr: corr[p] });
+      }
+    }
+    peaks.sort((a, b) => b.corr - a.corr);
+    // 精密化の段階で絞り込む余地を持たせるため、少し多めに残しておく
+    return peaks.slice(0, this.numCandidates * 2);
+  }
+
+  // 精密化: 粗探索で見つけた各ピークの周辺(±D サンプル)だけ、
+  // フル解像度・バイアス補正込みで自己相関を計算し直す
+  _refineCandidates(frame, coarsePeaks) {
+    if (coarsePeaks.length === 0) return [];
+
+    const margin = this.D; // 粗探索の解像度の粗さの分だけ、前後に余裕を持たせる
+    const computed = new Map(); // 同じ周期を二重計算しないためのキャッシュ
+
+    const correlationAt = (period) => {
+      if (period < this.periodMin || period > this.periodMax) return 0;
+      if (computed.has(period)) return computed.get(period);
+      let cross = 0, energyA = 0, energyB = 0;
+      const limit = frame.length - period;
+      for (let i = 0; i < limit; i++) {
+        cross += frame[i] * frame[i + period];
+        energyA += frame[i] * frame[i];
+        energyB += frame[i + period] * frame[i + period];
+      }
+      const c = (energyA > 0 && energyB > 0) ? cross / Math.sqrt(energyA * energyB) : 0;
+      computed.set(period, c);
+      return c;
+    };
+
+    const results = [];
+    for (const peak of coarsePeaks) {
+      const center = peak.period * this.D;
+      const lo = Math.max(this.periodMin, center - margin);
+      const hi = Math.min(this.periodMax, center + margin);
+
+      let bestPeriod = -1, bestCorr = -Infinity;
+      for (let period = lo; period <= hi; period++) {
+        const c = correlationAt(period);
+        if (c > bestCorr) { bestCorr = c; bestPeriod = period; }
+      }
+      if (bestPeriod < 0) continue;
+
+      // 放物線補間でサブサンプル精度に補正
+      const left = correlationAt(bestPeriod - 1);
+      const right = correlationAt(bestPeriod + 1);
+      const denom = 2 * bestCorr - left - right;
+      const offset = denom !== 0 ? 0.5 * (right - left) / denom : 0;
+      results.push({ period: bestPeriod + offset, corr: Math.min(bestCorr, 1) });
+    }
+
+    results.sort((a, b) => b.corr - a.corr);
+    return results.slice(0, this.numCandidates);
+  }
+
+  // 1フレーム分の窓について、粗探索→精密化の2段階でNCCFの候補ピークを求める
+  _findCandidates(frame, dsFrame) {
+    const coarsePeaks = this._coarsePeaks(dsFrame);
+    const refined = this._refineCandidates(frame, coarsePeaks);
+    // 「無声」を表す仮想候補(period=0)を先頭に追加しておく
+    return [{ period: 0, corr: 0 }, ...refined];
+  }
+
+  // フレームのRMS(二乗平均平方根)エネルギーを計算する
+  _rms(frame) {
+    let sum = 0;
+    for (let i = 0; i < frame.length; i++) sum += frame[i] * frame[i];
+    return Math.sqrt(sum / frame.length);
+  }
+
+  // 録音全体のフレームエネルギーの下位10パーセンタイルを「ノイズフロア」とみなす。
+  // オフライン(録音全体を後からまとめて解析)前提なので、リアルタイム用の
+  // 逐次追跡型ノイズフロアではなく、全体の分布から一括で求める方が
+  // チューニング不要で頑健(無音区間・弱い背景ノイズの水準を素直に反映できる)。
+  _estimateNoiseFloor(energies) {
+    const sorted = Array.from(energies).sort((a, b) => a - b);
+    const idx = Math.floor(sorted.length * 0.1);
+    return Math.max(sorted[idx] || 0, 1e-6); // log(0)を避けるための下限
+  }
+
+  // フレームエネルギーとノイズフロアの比(SNR, dB)から、
+  // 有声/無声どちら寄りに判定を倒すかのバイアス値(-W〜+W)を求める。
+  // 負の値ほど無声寄り、正の値ほど有声寄りになる。
+  _voicingBiasFromEnergy(energy, noiseFloor) {
+    const snrDb = 10 * Math.log10((energy + 1e-9) / (noiseFloor + 1e-9));
+    const t = (snrDb - this.SNR_LOW_DB) / (this.SNR_HIGH_DB - this.SNR_LOW_DB);
+    const clamped = Math.max(0, Math.min(1, t));
+    return this.VOICING_ENERGY_WEIGHT * (2 * clamped - 1);
+  }
+
+  // voicingBias: そのフレームのSNRから求めた補正値。無声側のコストに足し、
+  // 有声側のコストから引くことで、両者を対称にシフトさせる。
+  // 有声候補には、周期(period)が長い(=周波数が低い)ほど線形に増えるlag_weight
+  // ペナルティも加える(倍周期誤りを機械的に抑制するため)
+  _localCost(candidate, voicingBias = 0) {
+    if (candidate.period === 0) {
+      return this.UNVOICED_COST + voicingBias;
+    }
+    const lagPenalty = this.LAG_WEIGHT * (candidate.period / this.periodMax);
+    return Math.max(0, 1 - candidate.corr) + lagPenalty - voicingBias;
+  }
+
+  _transitionCost(prev, cur) {
+    const prevVoiced = prev.period !== 0;
+    const curVoiced = cur.period !== 0;
+    if (!prevVoiced && !curVoiced) return 0;
+    if (prevVoiced !== curVoiced) return this.VOICED_UNVOICED_TRANSITION;
+    const fPrev = this.sampleRate / prev.period;
+    const fCur = this.sampleRate / cur.period;
+    const semitones = 12 * Math.log2(fCur / fPrev);
+    return this.FREQ_JUMP_WEIGHT * semitones * semitones;
+  }
+
+  /**
+   * 音声信号全体を解析し、フレームごとの {time, fx, vs} の配列を返す。
+   * 候補生成(NCCFピーク探索) → 動的計画法(Viterbi)によるフレーム間の
+   * 最適経路選択、という2段構成がRAPTの中核部分にあたる。
+   * @param {Float32Array} signal モノラルの波形全体
+   * @returns {{time:number, fx:number, vs:number}[]}
+   */
+  analyze(signal) {
+    const hop = Math.max(1, Math.round(this.frameStepSec * this.sampleRate));
+    const frameCount = Math.max(0, Math.floor((signal.length - this.windowSize) / hop) + 1);
+    if (frameCount <= 0) return [];
+
+    // 粗探索用に、信号全体を1回だけダウンサンプリングしておく
+    const dsSignal = this._downsample(signal, this.D);
+
+    // 全フレーム分の候補と、有声/無声判定に使うエネルギーをあらかじめ計算しておく
+    const allCandidates = [];
+    const frameEnergies = new Float32Array(frameCount);
+    for (let t = 0; t < frameCount; t++) {
+      const start = t * hop;
+      const frame = signal.subarray(start, start + this.windowSize);
+      const dsStart = Math.floor(start / this.D);
+      const dsFrame = dsSignal.subarray(dsStart, dsStart + this.windowSizeDs);
+      allCandidates.push(this._findCandidates(frame, dsFrame));
+      frameEnergies[t] = this._rms(frame);
+    }
+
+    // 録音全体のエネルギー分布からノイズフロアを推定し、
+    // フレームごとの有声/無声バイアス(SNRベース)を求めておく
+    const noiseFloor = this._estimateNoiseFloor(frameEnergies);
+    const voicingBias = new Float32Array(frameCount);
+    for (let t = 0; t < frameCount; t++) {
+      voicingBias[t] = this._voicingBiasFromEnergy(frameEnergies[t], noiseFloor);
+    }
+
+    // ---- 動的計画法(Viterbi) ----
+    // dp[t][k]: フレームtで候補kを選んだ場合の、そこまでの最小累積コスト
+    // backptr[t][k]: そのdp[t][k]を実現した、フレームt-1での候補インデックス
+    const dp = [allCandidates[0].map(c => this._localCost(c, voicingBias[0]))];
+    const backptr = [null];
+
+    for (let t = 1; t < allCandidates.length; t++) {
+      const prevCands = allCandidates[t - 1];
+      const curCands = allCandidates[t];
+      const costs = new Array(curCands.length);
+      const back = new Array(curCands.length);
+
+      for (let k = 0; k < curCands.length; k++) {
+        let best = Infinity, bestIdx = 0;
+        for (let kp = 0; kp < prevCands.length; kp++) {
+          const c = dp[t - 1][kp] + this._transitionCost(prevCands[kp], curCands[k]);
+          if (c < best) { best = c; bestIdx = kp; }
+        }
+        costs[k] = best + this._localCost(curCands[k], voicingBias[t]);
+        back[k] = bestIdx;
+      }
+      dp.push(costs);
+      backptr.push(back);
+    }
+
+    // 最終フレームから最小コストの経路をたどって、全フレームの選択結果を復元する
+    const lastCosts = dp[dp.length - 1];
+    let k = lastCosts.indexOf(Math.min(...lastCosts));
+    const chosen = new Array(allCandidates.length);
+    for (let t = allCandidates.length - 1; t >= 0; t--) {
+      chosen[t] = allCandidates[t][k];
+      if (t > 0) k = backptr[t][k];
+    }
+
+    return chosen.map((c, t) => ({
+      time: (t * hop) / this.sampleRate,
+      fx: c.period > 0 ? this.sampleRate / c.period : 0,
+      vs: c.corr
+    }));
+  }
+}
+
+// ============================================================
+// アプリ本体:
+// マイク録音とファイル読み込みをそれぞれ独立に解析し、
+// ファイル(青)は固定のベースキャンバスに、
+// マイク録音(オレンジ)は透明なオーバーレイキャンバスに描画して重ね合わせる。
+// オーバーレイはドラッグして左右にずらし、2本のピッチ曲線を手動で位置合わせできる。
+//
+// 【仮想スクロールについて】
+// キャンバスの物理サイズは常に「画面に見えている幅(ビューポート)」だけに固定する。
+// 録音が長くなっても、キャンバス自体を録音時間分の幅まで巨大化させると、
+// ブラウザ側でその巨大な要素をスクロール・合成する処理自体が重くなり、
+// 描画コードをどれだけ軽くしても再生に追従できなくなる(針飛びのような動作になる)。
+// そこで、実際にスクロール範囲・スクロールバーを提供するのは見えない
+// .chart-spacer(幅だけ録音時間分ある透明な要素)に任せ、
+// キャンバスを含む.chart-stackはposition:stickyで常に画面の左端に固定しておく。
+// スクロール位置(chartScrollEl.scrollLeft)は「今どの時間帯を表示するか」を
+// 示す値として使い、毎回その範囲のデータだけをキャンバスに描き直す。
+//
+// 再生には<audio>要素を使用する(AudioContext+AudioBufferSourceNodeの
+// playbackRateは単純なリサンプリングでピッチも変わってしまうため、
+// ピッチを保ったまま速度だけ変えられるpreservesPitchを持つ
+// HTMLMediaElementの方を採用している)。
+// ============================================================
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+const overlayCanvas = document.getElementById('chartOverlay');
+const overlayCtx = overlayCanvas.getContext('2d');
+const playheadCanvas = document.getElementById('playhead');
+const playheadCtx = playheadCanvas.getContext('2d');
+const chartScrollEl = document.getElementById('chartScroll');
+const chartSpacerEl = document.getElementById('chartSpacer');
+const chartStackEl = document.getElementById('chartStack');
+const recordBtn = document.getElementById('recordBtn');
+const filePlayBtn = document.getElementById('filePlayBtn');
+const micPlayBtn = document.getElementById('micPlayBtn');
+const fileRateInput = document.getElementById('fileRate');
+const fileRateValueEl = document.getElementById('fileRateValue');
+const micRateInput = document.getElementById('micRate');
+const micRateValueEl = document.getElementById('micRateValue');
+const statusEl = document.getElementById('status');
+const lowFreqInput = document.getElementById('lowFreq');
+const highFreqInput = document.getElementById('highFreq');
+const audioFileInput = document.getElementById('audioFileInput');
+const fileButtonLabel = document.getElementById('fileButtonLabel');
+const fileNameLabel = document.getElementById('fileNameLabel');
+
+const CHART_MIN_HZ = 50;
+const CHART_MAX_HZ = 500;
+const LOG_MIN = Math.log2(CHART_MIN_HZ);
+const LOG_MAX = Math.log2(CHART_MAX_HZ);
+const CHART_HEIGHT = 260;         // キャンバスの高さ(CSSピクセル、固定)
+const PIXELS_PER_SECOND = 150;    // 1秒あたりの表示幅。これより長い録音は横スクロールになる
+const VISIBLE_MARGIN_SEC = 0.1;   // 可視範囲の前後に余裕を持たせる時間(境界の点を取りこぼさないため)
+
+const FILE_COLOR = '#43A9FF';
+const MIC_COLOR = '#F2A65A';
+
+let currentContentWidth = 0;  // 録音全体の論理幅(スクロール範囲の計算用、CSSピクセル)
+let currentViewportWidth = 0; // 画面に見えている幅(キャンバスの実サイズ、CSSピクセル)
+
+// 周波数(Hz)をキャンバス上のy座標に変換する(対数軸)
+function freqToY(fx, height) {
+  const clamped = Math.min(Math.max(fx, CHART_MIN_HZ), CHART_MAX_HZ);
+  return height - (height * (Math.log2(clamped) - LOG_MIN)) / (LOG_MAX - LOG_MIN);
+}
+
+// 時刻でソート済みの points 配列から、time >= t となる最初のインデックスを二分探索で求める
+// (可視範囲の点だけを取り出すために使う。ファイルが長くて点数が多くても高速)
+function lowerBoundByTime(points, t) {
+  let lo = 0, hi = points.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (points[mid].time < t) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+let mediaStream = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let recording = false;
+let recordStartTime = 0;
+let elapsedTimerHandle = null;
+
+let fileResult = null;   // { points, duration, audioUrl } (音声ファイル)
+let micResult = null;    // { points, duration, audioUrl } (マイク録音)
+let micOffsetPx = 0;     // マイクの曲線をドラッグでずらした量(ピクセル)
+
+let fileSourceBlob = null;  // 再解析用に保持しておく元データ(ファイル)
+let fileSourceLabel = '';
+let micSourceBlob = null;   // 再解析用に保持しておく元データ(マイク録音)
+let micSourceLabel = '';
+
+let filePlayheadTime = null; // ファイル再生位置(秒)。再生していない間はnull
+let micPlayheadTime = null;  // マイク再生位置(秒)。再生していない間はnull
+
+function setStatus(msg, isError) {
+  statusEl.textContent = msg || '';
+  statusEl.classList.toggle('error', Boolean(isError));
+}
+
+function layoutCanvas() {
+  const viewportWidth = chartScrollEl.clientWidth;
+  const duration = Math.max(fileResult ? fileResult.duration : 0, micResult ? micResult.duration : 0);
+  currentContentWidth = Math.max(viewportWidth, Math.ceil(duration * PIXELS_PER_SECOND));
+  currentViewportWidth = viewportWidth;
+
+  chartScrollEl.style.height = CHART_HEIGHT + 'px';
+  chartSpacerEl.style.width = currentContentWidth + 'px';
+  chartStackEl.style.width = viewportWidth + 'px';
+  chartStackEl.style.height = CHART_HEIGHT + 'px';
+
+  // キャンバスの物理サイズは録音時間に関わらず「見えている幅」のみに固定する
+  const dpr = window.devicePixelRatio || 1;
+  for (const [c, context] of [[canvas, ctx], [overlayCanvas, overlayCtx], [playheadCanvas, playheadCtx]]) {
+    c.style.width = viewportWidth + 'px';
+    c.style.height = CHART_HEIGHT + 'px';
+    c.width = viewportWidth * dpr;
+    c.height = CHART_HEIGHT * dpr;
+    context.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  // サイズが変わった以上、キャッシュされた「前回描画したスクロール位置」は無効にする
+  lastRenderedScrollLeft = null;
+  lastRenderedMicOffset = null;
+  renderFrame();
+}
+
+// モノラル信号に変換する(多チャンネルの場合は平均を取る)
+function toMono(audioBuffer) {
+  const ch0 = audioBuffer.getChannelData(0);
+  if (audioBuffer.numberOfChannels === 1) return ch0;
+  const mono = new Float32Array(ch0.length);
+  for (let c = 0; c < audioBuffer.numberOfChannels; c++) {
+    const data = audioBuffer.getChannelData(c);
+    for (let i = 0; i < data.length; i++) mono[i] += data[i] / audioBuffer.numberOfChannels;
+  }
+  return mono;
+}
+
+// 指定したcontext上に、pointsのうち今の可視範囲(scrollLeft〜scrollLeft+viewportWidth)に
+// 入るものだけを描画する。points は time について昇順ソート済みであることが前提
+// (RAPTの解析結果はフレーム順=時刻順に生成されるため、常に満たされる)。
+// offsetPx はドラッグ等による横方向のずれ(マイク用。ファイルの場合は0)。
+function drawVisiblePoints(context, points, offsetPx, scrollLeft, viewportWidth, color) {
+  if (!points || points.length === 0) return;
+
+  const tStart = (scrollLeft - offsetPx) / PIXELS_PER_SECOND - VISIBLE_MARGIN_SEC;
+  const tEnd = (scrollLeft + viewportWidth - offsetPx) / PIXELS_PER_SECOND + VISIBLE_MARGIN_SEC;
+  const startIdx = lowerBoundByTime(points, tStart);
+  const endIdx = lowerBoundByTime(points, tEnd);
+
+  context.fillStyle = color;
+  const DOT_RADIUS = 2;
+  for (let i = startIdx; i < endIdx; i++) {
+    const p = points[i];
+    if (p.fx <= 0) continue;
+    const x = p.time * PIXELS_PER_SECOND + offsetPx - scrollLeft;
+    const y = freqToY(p.fx, CHART_HEIGHT);
+    context.beginPath();
+    context.arc(x, y, DOT_RADIUS, 0, Math.PI * 2);
+    context.fill();
+  }
+}
+
+// ベースキャンバス: グリッド + ファイルのピッチ(青、可視範囲のみ)
+function drawStaticChart() {
+  const w = currentViewportWidth || chartScrollEl.clientWidth;
+  const h = CHART_HEIGHT;
+  const scrollLeft = chartScrollEl.scrollLeft;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // 背景の周波数グリッド(50Hz刻み、対数軸)
+  ctx.strokeStyle = '#1C2B32';
+  ctx.fillStyle = '#5C6E75';
+  ctx.font = '11px -apple-system, sans-serif';
+  ctx.lineWidth = 1;
+  for (let f = CHART_MIN_HZ; f <= CHART_MAX_HZ; f += 50) {
+    const y = freqToY(f, h);
+    ctx.beginPath();
+    ctx.moveTo(0, Math.round(y) + 0.5);
+    ctx.lineTo(w, Math.round(y) + 0.5);
+    ctx.stroke();
+    if (f % 100 === 0) ctx.fillText(f + 'Hz', 6, y - 4);
+  }
+
+  if (fileResult) {
+    drawVisiblePoints(ctx, fileResult.points, 0, scrollLeft, w, FILE_COLOR);
+  }
+}
+
+// オーバーレイキャンバス(透明): マイク録音のピッチ(オレンジ、可視範囲のみ)
+function drawOverlayChart() {
+  const w = currentViewportWidth || chartScrollEl.clientWidth;
+  const h = CHART_HEIGHT;
+  const scrollLeft = chartScrollEl.scrollLeft;
+
+  overlayCtx.clearRect(0, 0, w, h);
+  if (micResult) {
+    drawVisiblePoints(overlayCtx, micResult.points, micOffsetPx, scrollLeft, w, MIC_COLOR);
+  }
+}
+
+// 再生位置(赤い縦線)専用の最上位キャンバス。毎フレーム(rAF)呼ばれる想定なので、
+// 線を1〜2本引くだけの軽い処理に留めている。
+function drawPlayheads() {
+  const w = currentViewportWidth || chartScrollEl.clientWidth;
+  const h = CHART_HEIGHT;
+  const scrollLeft = chartScrollEl.scrollLeft;
+
+  playheadCtx.clearRect(0, 0, w, h);
+  playheadCtx.strokeStyle = '#E5484D';
+  playheadCtx.lineWidth = 1.5;
+
+  if (filePlayheadTime !== null) {
+    const x = filePlayheadTime * PIXELS_PER_SECOND - scrollLeft;
+    playheadCtx.beginPath();
+    playheadCtx.moveTo(Math.round(x) + 0.5, 0);
+    playheadCtx.lineTo(Math.round(x) + 0.5, h);
+    playheadCtx.stroke();
+  }
+
+  // マイクの赤線は、オーバーレイのドラッグ位置(micOffsetPx)を基準に動く
+  if (micPlayheadTime !== null) {
+    const x = micPlayheadTime * PIXELS_PER_SECOND + micOffsetPx - scrollLeft;
+    playheadCtx.beginPath();
+    playheadCtx.moveTo(Math.round(x) + 0.5, 0);
+    playheadCtx.lineTo(Math.round(x) + 0.5, h);
+    playheadCtx.stroke();
+  }
+}
+
+// ------------------------------------------------------------
+// 統一された再描画エントリポイント。
+// ・scrollLeftが変わった時だけ、グリッド+点(重い方)を再計算する
+// ・micOffsetPxが変わった時は、オーバーレイ(マイク側)だけ再計算する
+// ・赤い縦線は常に(軽いので)毎回描き直す
+// 再生中のrAFループ、ドラッグ操作、ネイティブスクロール、リサイズ、
+// 解析完了時など、あらゆる再描画のきっかけはすべてここを通す。
+// ------------------------------------------------------------
+let lastRenderedScrollLeft = null;
+let lastRenderedMicOffset = null;
+
+function renderFrame() {
+  const scrollLeft = chartScrollEl.scrollLeft;
+  const scrollChanged = scrollLeft !== lastRenderedScrollLeft;
+  const micOffsetChanged = micOffsetPx !== lastRenderedMicOffset;
+
+  if (scrollChanged) {
+    drawStaticChart();
+  }
+  if (scrollChanged || micOffsetChanged) {
+    drawOverlayChart();
+  }
+  lastRenderedScrollLeft = scrollLeft;
+  lastRenderedMicOffset = micOffsetPx;
+
+  drawPlayheads();
+}
+
+// ユーザーがスクロールバー・トラックパッド等で直接スクロールした場合にも追従する
+chartScrollEl.addEventListener('scroll', renderFrame);
+
+// 再生位置(赤い縦線)が、
+// ・左端から画面中央に来るまではキャンバスを動かさない
+// ・画面中央に来たら、以降は縦線を中央に固定してキャンバス側をスクロールする
+// ・録音の終端に近づき、これ以上スクロールできなくなったら、
+//   縦線が中央から右端に向かって動いていく
+// という挙動になるようスクロール位置を計算する。
+// absoluteX には、キャンバス上での赤線の絶対x座標(オフセット込み)を渡す。
+//
+// 値が変わっていない場合はscrollLeftへの書き込み自体を省略する
+// (無駄な書き込みを減らし、ブラウザ側のレイアウト再計算コストを抑えるため)
+function scrollToPlayhead(absoluteX) {
+  const viewportWidth = chartScrollEl.clientWidth;
+  let desiredScroll;
+  if (absoluteX <= viewportWidth / 2) {
+    desiredScroll = 0;
+  } else if (absoluteX >= currentContentWidth - viewportWidth / 2) {
+    desiredScroll = currentContentWidth - viewportWidth;
+  } else {
+    desiredScroll = absoluteX - viewportWidth / 2;
+  }
+  desiredScroll = Math.max(0, desiredScroll);
+  if (Math.abs(chartScrollEl.scrollLeft - desiredScroll) > 0.5) {
+    chartScrollEl.scrollLeft = desiredScroll;
+  }
+}
+
+// ------------------------------------------------------------
+// オーバーレイのドラッグ操作(マイク曲線を左右にずらして位置合わせする)
+// ------------------------------------------------------------
+let dragging = false;
+let dragStartX = 0;
+let dragStartOffset = 0;
+
+overlayCanvas.addEventListener('pointerdown', (e) => {
+  if (!micResult) return;
+  dragging = true;
+  dragStartX = e.clientX;
+  dragStartOffset = micOffsetPx;
+  overlayCanvas.setPointerCapture(e.pointerId);
+  overlayCanvas.classList.add('dragging');
+});
+overlayCanvas.addEventListener('pointermove', (e) => {
+  if (!dragging) return;
+  micOffsetPx = dragStartOffset + (e.clientX - dragStartX);
+  renderFrame();
+});
+function endDrag(e) {
+  if (!dragging) return;
+  dragging = false;
+  overlayCanvas.classList.remove('dragging');
+  try { overlayCanvas.releasePointerCapture(e.pointerId); } catch (err) {}
+}
+overlayCanvas.addEventListener('pointerup', endDrag);
+overlayCanvas.addEventListener('pointercancel', endDrag);
+
+// ------------------------------------------------------------
+// 再生コントローラのファクトリ: ファイル用・マイク用で共通のロジックを使い回す。
+// <audio>要素(HTMLMediaElement)を使うことで、playbackRateを変えても
+// ピッチが変わらない(preservesPitch)再生ができる。
+// ------------------------------------------------------------
+function createPlaybackController({ getResult, button, idleLabel, onTick, onStop }) {
+  const audioEl = new Audio();
+  audioEl.preload = 'auto';
+  let playing = false;
+  let rafHandle = null;
+  let currentRate = 1;
+
+  audioEl.addEventListener('ended', () => { if (playing) stop(false); });
+
+  function applyPitchPreservation() {
+    // ブラウザによってプロパティ名が異なるため、存在するものすべてに設定しておく
+    audioEl.preservesPitch = true;
+    audioEl.mozPreservesPitch = true;
+    audioEl.webkitPreservesPitch = true;
+  }
+
+  function toggle() {
+    if (playing) { stop(true); return; }
+    const result = getResult();
+    if (!result || !result.audioUrl) return;
+
+    if (audioEl.src !== result.audioUrl) {
+      audioEl.src = result.audioUrl;
+    }
+    audioEl.currentTime = 0;
+    applyPitchPreservation();
+    audioEl.playbackRate = currentRate;
+
+    playing = true;
+    button.textContent = '停止';
+    button.classList.add('playing');
+    chartScrollEl.scrollLeft = 0;
+    audioEl.play();
+    rafHandle = requestAnimationFrame(tick);
+  }
+
+  function tick() {
+    if (!playing) return;
+    onTick(audioEl.currentTime);
+    rafHandle = requestAnimationFrame(tick);
+  }
+
+  function stop(userInitiated) {
+    playing = false;
+    if (rafHandle) cancelAnimationFrame(rafHandle);
+    if (userInitiated) audioEl.pause();
+    button.textContent = idleLabel;
+    button.classList.remove('playing');
+    onStop();
+  }
+
+  function setRate(rate) {
+    currentRate = rate;
+    audioEl.playbackRate = rate; // 再生中ならその場で反映される
+  }
+
+  return { toggle, stop, setRate, isPlaying: () => playing };
+}
+
+const filePlayer = createPlaybackController({
+  getResult: () => fileResult,
+  button: filePlayBtn,
+  idleLabel: 'ファイルを再生',
+  onTick: (t) => {
+    filePlayheadTime = t;
+    scrollToPlayhead(t * PIXELS_PER_SECOND);
+    renderFrame();
+  },
+  onStop: () => {
+    filePlayheadTime = null;
+    renderFrame();
+  }
+});
+
+const micPlayer = createPlaybackController({
+  getResult: () => micResult,
+  button: micPlayBtn,
+  idleLabel: 'マイクを再生',
+  onTick: (t) => {
+    micPlayheadTime = t;
+    // マイクの赤線はオーバーレイのドラッグ位置(micOffsetPx)を基準に動くため、
+    // スクロール判定にも同じ絶対座標を使う
+    scrollToPlayhead(t * PIXELS_PER_SECOND + micOffsetPx);
+    renderFrame();
+  },
+  onStop: () => {
+    micPlayheadTime = null;
+    renderFrame();
+  }
+});
+
+filePlayBtn.addEventListener('click', () => filePlayer.toggle());
+micPlayBtn.addEventListener('click', () => micPlayer.toggle());
+
+fileRateInput.addEventListener('input', () => {
+  const rate = parseFloat(fileRateInput.value);
+  fileRateValueEl.textContent = rate.toFixed(2) + 'x';
+  filePlayer.setRate(rate);
+});
+micRateInput.addEventListener('input', () => {
+  const rate = parseFloat(micRateInput.value);
+  micRateValueEl.textContent = rate.toFixed(2) + 'x';
+  micPlayer.setRate(rate);
+});
+
+// ------------------------------------------------------------
+// 共通の解析処理: ArrayBuffer(録音データ or ファイル)をデコードしてRAPTにかける。
+// sourceBlobは再生用の<audio>要素に渡すためのBlob/File(解析用のArrayBufferとは別)。
+// target: 'file' または 'mic' で、結果の格納先と描画色を切り替える
+// ------------------------------------------------------------
+async function analyzeArrayBuffer(arrayBuffer, sourceBlob, label, target, { resetMicOffset = true } = {}) {
+  const fLow = Number(lowFreqInput.value);
+  const fHigh = Number(highFreqInput.value);
+  if (!(fLow > 0) || !(fHigh > fLow)) {
+    setStatus('下限・上限の値を確認してください', true);
+    return;
+  }
+
+  if (filePlayer.isPlaying()) filePlayer.stop(true);
+  if (micPlayer.isPlaying()) micPlayer.stop(true);
+
+  setStatus('解析中(RAPT)... 数秒かかる場合があります');
+  recordBtn.disabled = true;
+  filePlayBtn.disabled = true;
+  micPlayBtn.disabled = true;
+  fileButtonLabel.classList.add('disabled');
+
+  let decodeCtx = null;
+  try {
+    decodeCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const audioBuffer = await decodeCtx.decodeAudioData(arrayBuffer);
+    const signal = toMono(audioBuffer);
+
+    const tracker = new RaptPitchTracker({
+      fMin: fLow * 0.8,
+      fMax: fHigh * 1.3,
+      sampleRate: audioBuffer.sampleRate
+    });
+
+    // 解析はやや重いため、描画をブロックしないよう1フレーム待ってから実行する
+    await new Promise(resolve => setTimeout(resolve, 0));
+    const points = tracker.analyze(signal);
+    const audioUrl = URL.createObjectURL(sourceBlob);
+
+    if (target === 'mic') {
+      if (micResult) URL.revokeObjectURL(micResult.audioUrl);
+      micResult = { points, duration: audioBuffer.duration, audioUrl };
+      micSourceBlob = sourceBlob;
+      micSourceLabel = label;
+      if (resetMicOffset) micOffsetPx = 0; // 新しい録音では位置合わせをリセットする
+    } else {
+      if (fileResult) URL.revokeObjectURL(fileResult.audioUrl);
+      fileResult = { points, duration: audioBuffer.duration, audioUrl };
+      fileSourceBlob = sourceBlob;
+      fileSourceLabel = label;
+    }
+
+    setStatus('解析完了: ' + label + '(' + audioBuffer.duration.toFixed(2) + '秒)');
+    layoutCanvas();
+  } catch (err) {
+    setStatus('解析できませんでした: ' + err.message, true);
+  } finally {
+    if (decodeCtx) decodeCtx.close();
+    recordBtn.disabled = false;
+    filePlayBtn.disabled = !fileResult;
+    micPlayBtn.disabled = !micResult;
+    fileButtonLabel.classList.remove('disabled');
+  }
+}
+
+// ------------------------------------------------------------
+// マイク録音: MediaRecorderでいったん丸ごと録音し、停止後にまとめて解析する
+// ------------------------------------------------------------
+async function startRecording() {
+  if (filePlayer.isPlaying()) filePlayer.stop(true);
+  if (micPlayer.isPlaying()) micPlayer.stop(true);
+
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+    });
+  } catch (err) {
+    setStatus('マイクにアクセスできませんでした: ' + err.message, true);
+    return;
+  }
+
+  recordedChunks = [];
+  mediaRecorder = new MediaRecorder(mediaStream);
+  mediaRecorder.ondataavailable = (e) => {
+    if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+  };
+  mediaRecorder.onstop = async () => {
+    mediaStream.getTracks().forEach(t => t.stop());
+    const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+    const arrayBuffer = await blob.arrayBuffer();
+    await analyzeArrayBuffer(arrayBuffer, blob, '録音した音声', 'mic');
+  };
+
+  mediaRecorder.start();
+  recording = true;
+  recordStartTime = performance.now();
+  recordBtn.textContent = '録音停止';
+  recordBtn.classList.add('recording');
+  lowFreqInput.disabled = true;
+  highFreqInput.disabled = true;
+  fileButtonLabel.classList.add('disabled');
+
+  elapsedTimerHandle = setInterval(() => {
+    const sec = (performance.now() - recordStartTime) / 1000;
+    setStatus('録音中... ' + sec.toFixed(1) + '秒');
+  }, 200);
+  setStatus('録音中... 0.0秒');
+}
+
+function stopRecording() {
+  recording = false;
+  clearInterval(elapsedTimerHandle);
+  recordBtn.textContent = '録音開始';
+  recordBtn.classList.remove('recording');
+  lowFreqInput.disabled = false;
+  highFreqInput.disabled = false;
+  fileButtonLabel.classList.remove('disabled');
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+}
+
+recordBtn.addEventListener('click', () => {
+  if (recording) stopRecording();
+  else startRecording();
+});
+
+// マイク録音の解析結果・オーバーレイキャンバスの内容・再生用データを破棄する
+function discardMicResult() {
+  if (micPlayer.isPlaying()) micPlayer.stop(true);
+  if (micResult) URL.revokeObjectURL(micResult.audioUrl);
+  micResult = null;
+  micSourceBlob = null;
+  micSourceLabel = '';
+  micOffsetPx = 0;
+  micPlayheadTime = null;
+  micPlayBtn.disabled = true;
+  layoutCanvas(); // オーバーレイキャンバスを即座にクリアする
+}
+
+audioFileInput.addEventListener('change', async (e) => {
+  if (filePlayer.isPlaying()) filePlayer.stop(true);
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // 新しいファイルを読み込む際は、マイク録音側(透明キャンバス)を破棄する
+  discardMicResult();
+
+  fileNameLabel.textContent = file.name;
+  const arrayBuffer = await file.arrayBuffer();
+  await analyzeArrayBuffer(arrayBuffer, file, file.name, 'file');
+});
+
+// 周波数の下限・上限を変更したら、既存の音声データ(ファイル・マイクとも)を
+// 同じ元データのまま再解析する。マイク側のドラッグ位置(micOffsetPx)は
+// 単なるパラメータ変更では意味を保ちたいのでリセットしない。
+async function reanalyzeWithCurrentRange() {
+  if (fileSourceBlob) {
+    const arrayBuffer = await fileSourceBlob.arrayBuffer();
+    await analyzeArrayBuffer(arrayBuffer, fileSourceBlob, fileSourceLabel, 'file');
+  }
+  if (micSourceBlob) {
+    const arrayBuffer = await micSourceBlob.arrayBuffer();
+    await analyzeArrayBuffer(arrayBuffer, micSourceBlob, micSourceLabel, 'mic', { resetMicOffset: false });
+  }
+}
+
+lowFreqInput.addEventListener('change', reanalyzeWithCurrentRange);
+highFreqInput.addEventListener('change', reanalyzeWithCurrentRange);
+
+window.addEventListener('resize', layoutCanvas);
+layoutCanvas();
+</script>
+
+</body>
+</html>
