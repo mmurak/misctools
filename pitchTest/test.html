@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja">
+	<head>
+		<meta charset="UTF-8">
+		<title>Intonation Coach</title>
+		<link rel="shortcut icon" href="./intonationCoach/Kiwi-bird-green.png">
+		<style>
+body {
+	font-family: sans-serif;
+	margin: 20px;
+	background: #121212;
+	color: #fff;
+}
+.container {
+	max-width: 900px;
+	margin: auto;
+}
+h2 .subtitle {
+	font-size: 0.55em;
+	font-weight: normal;
+	color: #aaa;
+	margin-left: 8px;
+}
+.controls {
+	display: flex;
+	gap: 10px;
+	margin-bottom: 15px;
+	align-items: center;
+	flex-wrap: wrap;
+}
+.section-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-top: 20px;
+	margin-bottom: 5px;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+h3 {
+	margin: 0;
+	font-size: 1.1em;
+	color: #ddd;
+}
+.pitch-controls-row {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 16px;
+	margin-bottom: 8px;
+}
+.pitch-controls {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.9em;
+	color: #aaa;
+}
+.pitch-controls label {
+	cursor: pointer;
+	user-select: none;
+}
+.pitch-controls label:hover {
+	color: #fff;
+	text-decoration: underline;
+}
+.speed-controls {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.9em;
+	color: #aaa;
+}
+.speed-controls span {
+	min-width: 3.6em;
+	display: inline-block;
+}
+button, input[type="file"] {
+	padding: 8px 12px;
+	background: #333;
+	color: #fff;
+	border: 1px solid #555;
+	cursor: pointer;
+	border-radius: 4px;
+}
+button:hover {
+	background: #444;
+}
+button:disabled, input:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+input[type="range"] {
+	cursor: pointer;
+}
+#status {
+	font-size: 0.9em;
+	color: #aaa;
+	margin-bottom: 15px;
+	min-height: 1.4em;
+}
+.footer {
+	position: fixed;
+	bottom: 0;
+	font-size: 0.8em;
+	color: lightGray;
+}
+.record-btn {
+	touch-action: none;		/* 長押し中にスマホでスクロール等が起きないように */
+	user-select: none;
+}
+.record-btn.active {
+	background: #a33;
+	border-color: #d55;
+	color: #fff;
+}
+.legend {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	font-size: 0.85em;
+	color: #aaa;
+}
+.swatch {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	display: inline-block;
+}
+.swatch-file { background: #4af; }
+.swatch-mic { background: #fa4; }
+
+#pitchChartScrollContainer {
+	overflow-x: auto;
+	overflow-y: hidden;
+	border: 1px solid #444;
+	background: #1e1e1e;
+	margin-bottom: 6px;
+	height: 260px;
+}
+#pitchCanvas {
+	display: block;
+	height: 260px;
+	touch-action: none;		/* マイク録音位置のドラッグ操作中にスクロール等が起きないように */
+	user-select: none;
+	cursor: default;
+}
+.hint {
+	font-size: 0.8em;
+	color: #777;
+	margin-bottom: 60px;
+}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h2>Intonation Coach <span class="subtitle"> Powered by SwiftF0 pitch estimator</span></h2>
+
+			<!-- ファイル入力 & 再生コントロール -->
+			<div class="controls">
+				<input type="file" id="audioFile" accept="audio/*">
+				<button id="playPauseBtn" disabled>再生 / 停止</button>
+				<div class="speed-controls">
+					<label id="speedLabel" for="fileSpeedSlider">速度:</label>
+					<input type="range" id="fileSpeedSlider" min="0.5" max="1.5" step="0.05" value="1.0" disabled>
+					<span id="fileSpeedValue">1.00x</span>
+				</div>
+			</div>
+
+			<div id="status">モデルを初期化中...</div>
+
+			<!-- SwiftF0 ピッチ分析結果描画用キャンバス ＆ マイク録音 -->
+			<div class="section-header">
+				<div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+					<h3 id="HeaderPitchChart">SwiftF0 ピッチ分析結果 (Hz)</h3>
+					<button id="recordBtn" class="record-btn" disabled>🎤 マイク録音 (長押し)</button>
+					<button id="micPlayPauseBtn" disabled>マイク録音 再生 / 停止</button>
+					<div class="speed-controls">
+						<label id="speedLabelMic" for="micSpeedSlider">速度:</label>
+						<input type="range" id="micSpeedSlider" min="0.5" max="1.5" step="0.05" value="1.0" disabled>
+						<span id="micSpeedValue">1.00x</span>
+					</div>
+				</div>
+			</div>
+			<div class="pitch-controls-row">
+				<span class="legend"><span class="swatch swatch-file"></span><span id="legend01">ファイル分析</span></span>
+				<div class="pitch-controls">
+					<label id="confLabel" for="confThreshold" title="クリックしてデフォルト値(0.90)に戻す">信頼度 ≧: </label>
+					<span id="confValue"></span>
+					<input type="range" id="confThreshold" min="0" max="0.99" step="0.01" value="0.90">
+				</div>
+				<span class="legend"><span class="swatch swatch-mic"></span><span id="legend02">マイク録音</span></span>
+				<div class="pitch-controls">
+					<label id="confLabelMic" for="confThresholdMic" title="クリックしてデフォルト値(0.90)に戻す">信頼度 ≧: </label>
+					<span id="confValueMic"></span>
+					<input type="range" id="confThresholdMic" min="0" max="0.99" step="0.01" value="0.90">
+				</div>
+			</div>
+			<div id="pitchChartScrollContainer">
+				<canvas id="pitchCanvas"></canvas>
+			</div>
+			<div class="hint" id="hintText">※ マイク録音の波形（オレンジ）は左右にドラッグして位置を調整できます（ダブルクリックでリセット）。</div>
+
+			<footer class="footer" id="footer">SwiftF0 by Lars Nieradzik (MIT License) · 音声はブラウザ内でのみ処理され、外部へは送信されません。</footer>
+		</div>
+		<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+		<script type="module" src="./intonationCoachLite/intonationCoachLite.js"></script>
+	</body>
+</html>
