@@ -311,12 +311,13 @@ function searchPhrase() {
 	let foundFlag = false
 	let hitColour = "pink";
 	let tagNo = 0;
+	const regex = new RegExp(searchTerm, 'i');
 	for (let i = 0; i < rows.length; i++) {
 		for (let j = 0; j < rows[i].cells.length; j++) {
 			tagNo++;
 			if (targetArray[j]) {
 				const cellText = rows[i].cells[j].textContent;
-				if (cellText.includes(searchTerm)) {
+				if (cellText.match(regex)) {
 					rows[i].cells[j].style.backgroundColor = hitColour;
 					hitColour = "mistyrose";
 					G.resultArray.push([rows[i].cells[0].textContent, tagNo]);
